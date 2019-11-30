@@ -24,6 +24,8 @@ So different state observer creating different state representations will be imp
 * (2) Raw "sensor" data containing the the feature screens provided by PySC2.
 * (3) A combination of a latent state representation directly learned from the raw game input with the handcrafted state vector.
 
+---
+
 ## Agents
 
 #### Agent Structure
