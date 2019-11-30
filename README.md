@@ -31,7 +31,6 @@ So different state observer creating different state representations will be imp
 
 
 #### Agent Decision Making
-* AgentSmith: Scripted agent
-* AgentSmithAlpha: Q-Tabel
-* AgentSmithBeta: Q-Learning
-* ...many more to come
+* AgentSmith: Random / Scripted Agent
+* AgentSmithAlpha: Double Deep Q-Learning Agent with restricted action space
+* ... more to come
