@@ -1,4 +1,7 @@
 # Agent Smith Playing StarCraft 2
+<img align="right" src="https://github.com/LeRyc/SC2-Game-AI/blob/master/docs/img/agent_smith.png" height="200">
+
+
 
 ## Challenges
 * Huge state and action spaces
@@ -24,7 +27,7 @@ So different state observer creating different state representations will be imp
 ## Agents
 
 #### Agent Structure
-<img src="https://github.com/LeRyc/Robust-Robotic-Manipulation/blob/master/img/im3.png" height="250">
+<img src="https://github.com/LeRyc/SC2-Game-AI/blob/master/docs/img/general_structure.png" height="350">
 
 
 #### Agent Decision Making
