@@ -34,3 +34,12 @@ So different state observer creating different state representations will be imp
 * AgentSmith: Random / Scripted Agent
 * AgentSmithAlpha: Double Deep Q-Learning Agent with restricted action space
 * ... more to come
+
+---
+
+## Run
+To create a virtualenv and install all required libraries run ```install.sh```
+
+To start the training of the DDQN Agent vs a Random Agent run ```python run_sc2.py```
+
+To start the training of the DDQN Agent vs a standard StarCraft Botrunexecute ```python run_sc2.sh```
