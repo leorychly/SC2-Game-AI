@@ -37,7 +37,7 @@ So different state observer creating different state representations will be imp
 
 ---
 
-## Run
+## Install and Run
 To create a virtualenv and install all required libraries run ```install.sh```
 
 To start the training of the DDQN Agent vs a Random Agent run ```python run_sc2.py```
