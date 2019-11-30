@@ -1,6 +1,6 @@
 <img align="right" src="https://github.com/LeRyc/SC2-Game-AI/blob/master/docs/img/agent_smith.png" height="200">
-# Agent Smith Playing StarCraft 2
 
+# Agent Smith Playing StarCraft 2
 
 
 ## Challenges
