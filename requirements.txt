@@ -1,0 +1,5 @@
+pysc2
+numpy
+torch
+physt
+matplotlib

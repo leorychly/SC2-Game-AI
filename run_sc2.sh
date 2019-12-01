@@ -2,5 +2,7 @@
 
 python -m pysc2.bin.agent \
 --map Simple64 \
---agent src.run_sc2.SimpleAgent \
---agent_race terran
+--agent src.agents.agent_smith_alpha.alpha_agent.AgentSmithAlpha \
+--agent_race terran \
+--max_agent_steps 0 \
+--norender
