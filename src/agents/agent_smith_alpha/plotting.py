@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def plot_progress(logging_data, save_dir):
-  n = 10 if len(logging_data) >= 10 else len(logging_data)
-  game_results = [logging_data[i]["game_result"] for i in range(len(logging_data))]
+def plot_progress(data, save_dir):
+  n = 10 if len(data) >= 10 else len(data)
+  game_results = [data[i]["game_result"] for i in range(len(data))]
   game_results = [0 if x is None else x for x in game_results] # TODO: Check why reward can be None
 
   win_rates = [game_results[:i].count(1) / (i + 1) for i in range(n)]
@@ -25,8 +25,8 @@ def plot_progress(logging_data, save_dir):
   f1_ax1.plot(np.arange(len(game_results)), loss_rates, "r", label="Loss %", alpha=0.7)
   f1_ax1.legend()
 
-  game_results = [logging_data[i]["game_result"] for i in range(len(logging_data))]
-  steps = [logging_data[i]["game_length"] for i in range(len(logging_data))]
+  game_results = [data[i]["game_result"] for i in range(len(data))]
+  steps = [data[i]["game_length"] for i in range(len(data))]
   total_steps = np.sum(steps)
   y_ticks = np.cumsum(steps)
   c_map = {1: "green", 0: "orange", -1: "red"}

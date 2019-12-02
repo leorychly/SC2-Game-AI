@@ -104,6 +104,7 @@ class DQNAgent():
 
   def step(self, state, action, reward, next_state, done):
     self.memory.push(state, action, reward, next_state, done)
+
     if self.global_training_step % self.training_interval == 0:
       if len(self.memory) > self.batch_size:
         batch = self.memory.sample(self.batch_size)

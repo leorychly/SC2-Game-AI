@@ -30,12 +30,12 @@ class AgentSmithAlpha(Agent):
     self.interface = Interface()
     self.actions = Actions()
     self.observer = CraftedObserver()
-    self.reward_fn = reward_fn.KillScoreRewardFn()
+    self.reward_fn = reward_fn.SparseRewardFn()
 
     self.prev_state = None
     self.prev_action = None
     self.base_top_left = None
-    self.logging = []
+    self.progress_data = []
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     self.policy = DQNAgent(state_dim=len(self.observer),
                            action_dim=len(self.actions),
@@ -51,7 +51,7 @@ class AgentSmithAlpha(Agent):
                            device=device)
 
     self.game_step = 0  # Is updated prior to each step execution
-    self.new_game()
+    #self.new_game()
 
   def reset(self):
     super(AgentSmithAlpha, self).reset()
@@ -62,27 +62,27 @@ class AgentSmithAlpha(Agent):
     self.prev_state = None
     self.prev_action = None
     self.game_step = 0
-    self.logging.append({"game_result": None,
-                         "game_length": self.game_step,
-                         "actions_taken": h1([np.arange(len(self.actions))],
-                                             len(self.actions))})
+    self.progress_data.append({"game_result": None,
+                               "game_length": self.game_step,
+                               "actions_taken": h1(
+                                 [np.arange(len(self.actions))],
+                                            len(self.actions))})
 
   def step(self, obs):
     self.game_step += 1
+    state = self.observer.get_state(obs)
+    reward = self.reward_function(obs)
+    done = obs.last()
     if obs.first():
       self._first_step(obs)
     if obs.last():
-      pysc2_action = self._last_step(obs)
+      pysc2_action = self._last_step(obs, state, reward, done)
     else:
-      pysc2_action = self._step(obs)
+      pysc2_action = self._step(obs, state, reward, done)
     return pysc2_action
 
-  def _step(self, obs):
-    state = self.observer.get_state(obs)
+  def _step(self, obs, state, reward, done):
     action = self.choose_action(state)
-    reward = self.reward_function(obs)
-    done = obs.last()
-
     if self.prev_action is not None:
       #if not self.is_same_state(self.prev_state, state):
       self.policy.step(state=self.prev_state,
@@ -90,8 +90,7 @@ class AgentSmithAlpha(Agent):
                        reward=reward,
                        next_state=state,
                        done=done)
-
-    self.log_results(done, reward, action)
+    self.log_results(done, action, game_result=None)
     self.prev_state = state
     self.prev_action = action
 
@@ -103,16 +102,16 @@ class AgentSmithAlpha(Agent):
     super(AgentSmithAlpha, self).step(obs)
     self.actions.set_base_pos(self.base_top_left)
 
-  def _last_step(self, obs):
-    done = True
-    reward = obs.reward
-    state = self.observer.get_state(obs)
+  def _last_step(self, obs, state, reward, done):
     self.policy.step(state=self.prev_state,
-                         action=self.prev_action,
-                         reward=reward,
-                         next_state=state,
-                         done=done)
-    pysc2_action = Actions.do_nothing()
+                     action=self.prev_action,
+                     reward=reward,
+                     next_state=state,
+                     done=done)
+    action = 0
+    game_result = reward  # obs.player_result
+    self.log_results(done, action, game_result)
+    pysc2_action = self.actions.do_nothing()
     world_state = WorldState(obs=obs, base_top_left=self.base_top_left)
     return pysc2_action(world_state)
 
@@ -129,12 +128,13 @@ class AgentSmithAlpha(Agent):
     reward = self.reward_fn(obs)
     return reward
 
-  def log_results(self, done, reward, action):
-    self.logging[-1]["actions_taken"] << action
+  def log_results(self, done, action, game_result):
+    self.progress_data[-1]["actions_taken"] << action
     if done:
-      self.logging[-1]["game_result"] = reward
-      self.logging[-1]["game_length"] = self.game_step
-      plot_progress(logging_data=self.logging, save_dir="./progress.png")
-      np.save('./my_file.npy', self.logging)
-      self.logging[-1]["actions_taken"].plot()
+      self.progress_data[-1]["game_result"] = game_result
+      self.progress_data[-1]["game_length"] = self.game_step
+      plot_progress(data=self.progress_data,
+                    save_dir="./training_progress.png")
+      np.save('./training_progress.npy', self.progress_data)
+      self.progress_data[-1]["actions_taken"].plot()
       plt.savefig("./hist.png")
