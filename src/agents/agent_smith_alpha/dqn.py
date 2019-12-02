@@ -198,4 +198,26 @@ class DQNAgent():
     self.training_summary.append(loss_npy)
     if self.global_training_step % 100 == 0:
       np.save("dqn.npy", self.training_summary)
-      plot_training_progress(self.training_summary, save_dir="dqn.png")
+      plot_training_progress(self.training_summary, save_dir="./results/dqn.png")
+
+  def save(self, file_path):
+    file_path.mkdir(parents=True, exist_ok=True)
+    torch.save(self.qnet1.state_dict(),
+               (file_path / "qnet1").absolute().as_posix())
+    torch.save(self.optimizer1.state_dict(),
+               (file_path / "qnet1_optimizer").absolute().as_posix())
+    torch.save(self.qnet2.state_dict(),
+               (file_path / "qnet2").absolute().as_posix())
+    torch.save(self.optimizer2.state_dict(),
+               (file_path / "qnet2_optimizer").absolute().as_posix())
+
+  def load(self, file_path):
+    file_path.mkdir(parents=True, exist_ok=True)
+    self.qnet1.load_state_dict(torch.load(
+      (file_path / "qnet1").absolute().as_posix()))
+    self.optimizer1.load_state_dict(torch.load(
+      (file_path / "qnet1_optimizer").absolute().as_posix()))
+    self.qnet2.load_state_dict(torch.load(
+      (file_path / "qnet2").absolute().as_posix()))
+    self.optimizer2.load_state_dict(torch.load(
+      (file_path / "qnet2_optimizer").absolute().as_posix()))

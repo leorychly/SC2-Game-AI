@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from physt import h1
+from pathlib2 import Path
 from absl import logging
 import matplotlib.pyplot as plt
 from pysc2.lib import actions, features, units
@@ -22,10 +23,10 @@ class AgentSmithAlpha(Agent):
                gamma=0.99,
                tau=1e-3,
                lr=1e-4,
-               training_interval=2,
+               training_interval=5,
                epsilon=0.999,
                epsilon_decay=0.995,
-               epsilon_min=0.01):
+               epsilon_min=0.05):
     super(AgentSmithAlpha, self).__init__()
     self.interface = Interface()
     self.actions = Actions()
@@ -49,6 +50,18 @@ class AgentSmithAlpha(Agent):
                            epsilon_decay=epsilon_decay,
                            epsilon_min=epsilon_min,
                            device=device)
+
+    self.action_hist_fname = "./results/hist.png"
+    self.data_progress_fname = "./results/training_progress.npy"
+    self.plot_progress_fname = "./results/training_progress.png"
+    self.model_path = Path("./results/dqn/")
+    try:
+      self.policy.load(self.model_path)
+      logging.info(f"The model was loaded from "
+                   f"'{self.model_path.absolute().as_posix()}'")
+    except Exception as e:
+      logging.info(f"No model loaded from "
+                   f"'{self.model_path.absolute().as_posix()}'")
 
     self.game_step = 0  # Is updated prior to each step execution
     #self.new_game()
@@ -131,10 +144,11 @@ class AgentSmithAlpha(Agent):
   def log_results(self, done, action, game_result):
     self.progress_data[-1]["actions_taken"] << action
     if done:
+      self.policy.save(self.model_path)
       self.progress_data[-1]["game_result"] = game_result
       self.progress_data[-1]["game_length"] = self.game_step
       plot_progress(data=self.progress_data,
-                    save_dir="./training_progress.png")
-      np.save('./training_progress.npy', self.progress_data)
+                    save_dir=self.plot_progress_fname)
+      np.save(self.data_progress_fname, self.progress_data)
       self.progress_data[-1]["actions_taken"].plot()
-      plt.savefig("./hist.png")
+      plt.savefig(self.action_hist_fname)
