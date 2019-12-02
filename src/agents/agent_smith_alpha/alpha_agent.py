@@ -15,6 +15,8 @@ from src.agents.agent_smith_alpha import reward_fn
 from src.agents.agent_smith_alpha.dqn import DQNAgent
 from src.agents.agent_smith_alpha.plotting import plot_progress
 
+# TODO: change all file paths to pathlib2.Paths
+
 
 class AgentSmithAlpha(Agent):
   def __init__(self,
@@ -145,6 +147,7 @@ class AgentSmithAlpha(Agent):
     self.progress_data[-1]["actions_taken"] << action
     if done:
       self.policy.save(self.model_path)
+      logging.info(f"Model saved to '{self.model_path}'")
       self.progress_data[-1]["game_result"] = game_result
       self.progress_data[-1]["game_length"] = self.game_step
       plot_progress(data=self.progress_data,

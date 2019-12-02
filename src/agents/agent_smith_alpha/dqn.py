@@ -58,7 +58,9 @@ class DQNAgent():
       Set 'cpu' or 'cuda' for either using the cpu or gpu the neural
       network calculations repectively.
     """
-    self.device=device
+    self.device = device
+    self.train_process_data_fname = "./results/dqn_training.npy"
+    self.train_process_plot_fname = "./results/dqn_training.png"
 
     self.action_dim = action_dim
     self.batch_size = batch_size
@@ -197,8 +199,9 @@ class DQNAgent():
   def log_progress(self, loss_npy):
     self.training_summary.append(loss_npy)
     if self.global_training_step % 100 == 0:
-      np.save("dqn.npy", self.training_summary)
-      plot_training_progress(self.training_summary, save_dir="./results/dqn.png")
+      np.save(self.train_process_data_fname, self.training_summary)
+      plot_training_progress(self.training_summary,
+                             save_dir=self.train_process_plot_fname)
 
   def save(self, file_path):
     file_path.mkdir(parents=True, exist_ok=True)
