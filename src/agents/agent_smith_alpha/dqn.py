@@ -104,11 +104,12 @@ class DQNAgent():
 
   def step(self, state, action, reward, next_state, done):
     self.memory.push(state, action, reward, next_state, done)
-
     if self.global_training_step % self.training_interval == 0:
       if len(self.memory) > self.batch_size:
         batch = self.memory.sample(self.batch_size)
         self.optimize_regular(batch)
+    self.global_training_step += 1
+
 
   def optimize_regular(self, batch):
     """Optimize the Q networks corresponding to Double Q-Learning."""
@@ -153,7 +154,6 @@ class DQNAgent():
     self.optimizer2.zero_grad()
     loss2.backward()
     self.optimizer2.step()
-    self.global_training_step += 1
 
   def _compute_clipped_loss(self, batch):
     """
