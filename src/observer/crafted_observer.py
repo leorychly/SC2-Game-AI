@@ -15,6 +15,9 @@ class CraftedObserver(BaseObserver):
   def __len__(self):
     return self.state_dim
 
+  def player_info(self, obs):
+    player_info = obs.observation["player"]  # (11,)
+
   def get_state(self, obs):
     scvs, idle_scvs, command_centers, completed_command_centers, \
     supply_depots, completed_supply_depots = self.get_basic_info(obs)

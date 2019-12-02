@@ -3,9 +3,10 @@ import matplotlib.pyplot as plt
 
 
 def plot_progress(logging_data, save_dir):
-  # TODO: Check why test plot shows 0% Loss rate at beginning
   n = 10 if len(logging_data) >= 10 else len(logging_data)
   game_results = [logging_data[i]["game_result"] for i in range(len(logging_data))]
+  game_results = [0 if x is None else x for x in game_results] # TODO: Check why reward can be None
+
   win_rates = [game_results[:i].count(1) / (i + 1) for i in range(n)]
   draw_rates = [game_results[:i].count(0) / (i + 1) for i in range(n)]
   loss_rates = [game_results[:i].count(-1) / (i + 1) for i in range(n)]

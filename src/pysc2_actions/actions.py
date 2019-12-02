@@ -29,3 +29,6 @@ class Actions(object):
 
   def sample(self):
     return random.choice(self._actions)
+
+  def do_nothing(self):
+    return self._actions[0]
