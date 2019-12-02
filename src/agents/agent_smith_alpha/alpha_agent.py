@@ -10,6 +10,7 @@ from src.agents.base_agent import Agent
 from src.pysc2_interface.interface import Interface
 from src.pysc2_actions.actions import Actions
 from src.observer.crafted_observer import CraftedObserver
+from src.agents.agent_smith_alpha import reward_fn
 from src.agents.agent_smith_alpha.dqn import DQNAgent
 from src.agents.agent_smith_alpha.plotting import plot_progress
 
@@ -21,14 +22,15 @@ class AgentSmithAlpha(Agent):
                gamma=0.99,
                tau=1e-3,
                lr=1e-4,
-               training_interval=1,
+               training_interval=2,
                epsilon=0.999,
-               epsilon_decay=0.99995,
+               epsilon_decay=0.995,
                epsilon_min=0.01):
     super(AgentSmithAlpha, self).__init__()
     self.interface = Interface()
     self.actions = Actions()
     self.observer = CraftedObserver()
+    self.reward_fn = reward_fn.KillScoreRewardFn()
 
     self.prev_state = None
     self.prev_action = None
@@ -48,7 +50,7 @@ class AgentSmithAlpha(Agent):
                            epsilon_min=epsilon_min,
                            device=device)
 
-    self.game_step = 0
+    self.game_step = 0  # Is updated prior to each step execution
     self.new_game()
 
   def reset(self):
@@ -66,9 +68,16 @@ class AgentSmithAlpha(Agent):
                                              len(self.actions))})
 
   def step(self, obs):
+    self.game_step += 1
     if obs.first():
-      super(AgentSmithAlpha, self).step(obs)
-      self.actions.set_base_pos(self.base_top_left)
+      self._first_step(obs)
+    if obs.last():
+      pysc2_action = self._last_step(obs)
+    else:
+      pysc2_action = self._step(obs)
+    return pysc2_action
+
+  def _step(self, obs):
     state = self.observer.get_state(obs)
     action = self.choose_action(state)
     reward = self.reward_function(obs)
@@ -83,17 +92,33 @@ class AgentSmithAlpha(Agent):
                        done=done)
 
     self.log_results(done, reward, action)
-
     self.prev_state = state
     self.prev_action = action
-    self.game_step += 1
 
     world_state = WorldState(obs=obs, base_top_left=self.base_top_left)
     pysc2_action = self.actions(action)
     return pysc2_action(world_state)
 
+  def _first_step(self, obs):
+    super(AgentSmithAlpha, self).step(obs)
+    self.actions.set_base_pos(self.base_top_left)
+
+  def _last_step(self, obs):
+    done = True
+    reward = obs.reward
+    state = self.observer.get_state(obs)
+    self.policy.step(state=self.prev_state,
+                         action=self.prev_action,
+                         reward=reward,
+                         next_state=state,
+                         done=done)
+    pysc2_action = Actions.do_nothing()
+    world_state = WorldState(obs=obs, base_top_left=self.base_top_left)
+    return pysc2_action(world_state)
+
   def is_same_state(self, s1, s2):
-    return True if np.allclose(s1, s2, rtol=0.01) else False
+    #return True if np.allclose(s1, s2, rtol=0.1) else False
+    return np.array_equal(s1, s2)
 
   def choose_action(self, state):
     state = np.asarray(state)
@@ -101,7 +126,8 @@ class AgentSmithAlpha(Agent):
     return action
 
   def reward_function(self, obs):
-    return obs.reward
+    reward = self.reward_fn(obs)
+    return reward
 
   def log_results(self, done, reward, action):
     self.logging[-1]["actions_taken"] << action
