@@ -16,6 +16,7 @@ from src.agents.agent_smith_alpha.dqn import DQNAgent
 from src.agents.agent_smith_alpha.plotting import plot_progress
 
 # TODO: change all file paths to pathlib2.Paths
+# TODO: add plot for action_hist over time => 2D Hist
 
 
 class AgentSmithAlpha(Agent):
