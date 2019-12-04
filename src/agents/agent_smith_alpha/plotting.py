@@ -57,7 +57,33 @@ def plot_training_progress(losses, save_dir):
   plt.close(fig)
 
 
+def plot_action_histogram(data, save_dir):
+  a_lst = [d["actions_taken"] for d in data]
+  a_lst = np.asarray(a_lst)
+  sum_a_lst = np.sum(a_lst, axis=1)
+  normalized_a_list = a_lst / sum_a_lst[:, None]
+  fig = plt.figure()
+  ax = fig.add_subplot()
+  for a_nr in range(a_lst.shape[1]):
+    ax.plot(np.arange(a_lst.shape[0]), normalized_a_list[:, a_nr],
+            label=f"Action {a_nr}", alpha=0.75)
+  ax.legend()
+  ax.set_title("Actions Chosen during Games")
+  ax.set_xlabel("Games Played")
+  ax.set_ylabel("Action Chosen [%}")
+  fig.savefig(save_dir)
+  plt.close(fig)
+
+
 if __name__ == '__main__':
+  from physt import h1
+  data = [{"actions_taken": [10,4,2]},
+          {"actions_taken": [2,1,1]}]
+  plot_action_histogram(data, "./test_actions.png")
+
+
+
+def test_plot_progress():
   data= [{"game_result": -1, "game_length": 10},
          {"game_result": -1, "game_length": 10},
          {"game_result": 0, "game_length": 20},

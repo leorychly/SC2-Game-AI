@@ -13,16 +13,15 @@ from src.pysc2_actions.actions import Actions
 from src.observer.crafted_observer import CraftedObserver
 from src.agents.agent_smith_alpha import reward_fn
 from src.agents.agent_smith_alpha.dqn import DQNAgent
-from src.agents.agent_smith_alpha.plotting import plot_progress
+from src.agents.agent_smith_alpha import plotting
 
 # TODO: change all file paths to pathlib2.Paths
-# TODO: add plot for action_hist over time => 2D Hist
 
 
 class AgentSmithAlpha(Agent):
   def __init__(self,
                buffer_size=int(1e6),
-               batch_size=128,
+               batch_size=16,
                gamma=0.99,
                tau=1e-3,
                lr=1e-4,
@@ -34,7 +33,7 @@ class AgentSmithAlpha(Agent):
     self.interface = Interface()
     self.actions = Actions()
     self.observer = CraftedObserver()
-    self.reward_fn = reward_fn.SparseRewardFn()
+    self.reward_fn = reward_fn.KillScoreRewardFn()
 
     self.prev_state = None
     self.prev_action = None
@@ -80,9 +79,7 @@ class AgentSmithAlpha(Agent):
     self.game_step = 0
     self.progress_data.append({"game_result": None,
                                "game_length": self.game_step,
-                               "actions_taken": h1(
-                                 [np.arange(len(self.actions))],
-                                            len(self.actions))})
+                               "actions_taken": np.zeros(len(self.actions))})
 
   def step(self, obs):
     self.game_step += 1
@@ -106,7 +103,7 @@ class AgentSmithAlpha(Agent):
                        reward=reward,
                        next_state=state,
                        done=done)
-    self.log_results(done, action, game_result=None)
+    self.log_results(obs, action)
     self.prev_state = state
     self.prev_action = action
 
@@ -125,8 +122,7 @@ class AgentSmithAlpha(Agent):
                      next_state=state,
                      done=done)
     action = 0
-    game_result = reward  # obs.player_result
-    self.log_results(done, action, game_result)
+    self.log_results(obs, action)
     pysc2_action = self.actions.do_nothing()
     world_state = WorldState(obs=obs, base_top_left=self.base_top_left)
     return pysc2_action(world_state)
@@ -144,15 +140,17 @@ class AgentSmithAlpha(Agent):
     reward = self.reward_fn(obs)
     return reward
 
-  def log_results(self, done, action, game_result):
-    self.progress_data[-1]["actions_taken"] << action
-    if done:
+  def log_results(self, obs, action):
+    self.progress_data[-1]["actions_taken"][action] += 1
+    if obs.last():
+      game_result = obs.reward
       self.policy.save(self.model_path)
       logging.info(f"Model saved to '{self.model_path}'")
       self.progress_data[-1]["game_result"] = game_result
       self.progress_data[-1]["game_length"] = self.game_step
-      plot_progress(data=self.progress_data,
-                    save_dir=self.plot_progress_fname)
+      plotting.plot_progress(data=self.progress_data,
+                             save_dir=self.plot_progress_fname)
       np.save(self.data_progress_fname, self.progress_data)
-      self.progress_data[-1]["actions_taken"].plot()
-      plt.savefig(self.action_hist_fname)
+
+      plotting.plot_action_histogram(self.progress_data,
+                                     self.action_hist_fname)
