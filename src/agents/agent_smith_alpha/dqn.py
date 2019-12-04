@@ -7,6 +7,7 @@ import torch.optim as optim
 
 from src.agents.agent_smith_alpha.qnet import QNet
 from src.agents.agent_smith_alpha.buffer_simple import SimpleBuffer
+from src.agents.agent_smith_alpha.buffer_prioritized import PrioritizedBuffer
 from src.agents.agent_smith_alpha.plotting import plot_training_progress
 
 class DQNAgent():
@@ -71,12 +72,14 @@ class DQNAgent():
     self.epsilon_decay = epsilon_decay
     self.epsilon_min = epsilon_min
     self.memory = SimpleBuffer(max_size=buffer_size, device=device)
+    #self.memory = PrioritizedBuffer(max_size=buffer_size, device=device)
     self.global_training_step = 0
     self.qnet1 = QNet(state_dim, action_dim).to(device)
     self.qnet2 = QNet(state_dim, action_dim).to(device)
     self.optimizer1 = optim.Adam(self.qnet1.parameters(), lr=lr)
     self.optimizer2 = optim.Adam(self.qnet2.parameters(), lr=lr)
     self.training_summary = []
+    self.epsilon_history = []
 
   def __call__(self, obs):
     return self.plan(obs)
@@ -112,7 +115,6 @@ class DQNAgent():
         batch = self.memory.sample(self.batch_size)
         self.optimize_regular(batch)
     self.global_training_step += 1
-
 
   def optimize_regular(self, batch):
     """Optimize the Q networks corresponding to Double Q-Learning."""
@@ -177,12 +179,12 @@ class DQNAgent():
     """
     states, actions, rewards, next_states, dones = batch
     # Target Q
-    q1_targets_next = self.qnet1.forward(next_states).detach()
-    q2_targets_next = self.qnet2.forward(next_states).detach()
-    q_targets_next = torch.min(torch.max(q1_targets_next, 1)[0],
-                       torch.max(q2_targets_next, 1)[0])
+    q1_next = self.qnet1.forward(next_states).detach()
+    q2_next = self.qnet2.forward(next_states).detach()
+    q_next = torch.min(torch.max(q1_next, 1)[0],
+                       torch.max(q2_next, 1)[0])
     #q_targets_next = q_targets_next.view(q_targets_next.size(0), 1)
-    target_q = rewards + (self.gamma * q_targets_next * (1 - dones))
+    target_q = rewards + (self.gamma * q_next) * (1 - dones)
     # Current Q
     q1_current = self.qnet1(states).gather(1, actions)
     q2_current = self.qnet2(states).gather(1, actions)
@@ -197,10 +199,12 @@ class DQNAgent():
       target_param.data.copy_(self.tau * local_param.data + (1.0 - self.tau) * target_param.data)
 
   def log_progress(self, loss_npy):
+    self.epsilon_history.append(self.epsilon)
     self.training_summary.append(loss_npy)
     if self.global_training_step % 100 == 0:
       np.save(self.train_process_data_fname, self.training_summary)
       plot_training_progress(self.training_summary,
+                             self.epsilon_history,
                              save_dir=self.train_process_plot_fname)
 
   def save(self, file_path):

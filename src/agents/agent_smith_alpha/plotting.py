@@ -46,13 +46,17 @@ def plot_progress(data, save_dir):
   plt.close(fig1)
 
 
-def plot_training_progress(losses, save_dir):
-  fig = plt.figure()
-  plt.plot(np.arange(len(losses)), losses)
-  plt.title("Q-Network Training Loss")
-  plt.xlabel("Updates")
-  plt.ylabel("MSE TD Error")
-  plt.yscale("log")
+def plot_training_progress(losses, epsilons, save_dir):
+  fig, ax1 = plt.subplots()
+  ax1 = fig.add_subplot()
+  ax1.set_title("Q-Network Training Loss")
+  ax1.set_xlabel("Updates")
+  ax1.set_ylabel("MSE TD Error")
+  ax1.set_yscale("log")
+  ax1.plot(np.arange(len(losses)), losses)
+  ax2 = ax1.twinx()
+  ax2.set_ylabel("Epsilon")
+  ax2.plot(np.arange(len(losses)), epsilons, c="grey", alpha=0.75)
   fig.savefig(save_dir)
   plt.close(fig)
 
@@ -64,23 +68,21 @@ def plot_action_histogram(data, save_dir):
   normalized_a_list = a_lst / sum_a_lst[:, None]
   fig = plt.figure()
   ax = fig.add_subplot()
+  ax.set_title("Actions Chosen during Games")
+  ax.set_xlabel("Games Played")
+  ax.set_ylabel("Action Chosen [%}")
   for a_nr in range(a_lst.shape[1]):
     ax.plot(np.arange(a_lst.shape[0]), normalized_a_list[:, a_nr],
             label=f"Action {a_nr}", alpha=0.75)
   ax.legend()
-  ax.set_title("Actions Chosen during Games")
-  ax.set_xlabel("Games Played")
-  ax.set_ylabel("Action Chosen [%}")
   fig.savefig(save_dir)
   plt.close(fig)
 
 
-if __name__ == '__main__':
-  from physt import h1
+def test_plot_action_histogram():
   data = [{"actions_taken": [10,4,2]},
           {"actions_taken": [2,1,1]}]
   plot_action_histogram(data, "./test_actions.png")
-
 
 
 def test_plot_progress():
@@ -101,3 +103,8 @@ def test_plot_progress():
          {"game_result": 1, "game_length": 30},
          {"game_result": 1, "game_length": 30}]
   plot_progress(logging_data=data, save_dir="./test.png")
+
+
+if __name__ == '__main__':
+  test_plot_progress()
+  test_plot_action_histogram()
