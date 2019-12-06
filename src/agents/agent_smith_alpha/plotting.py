@@ -47,16 +47,20 @@ def plot_progress(data, save_dir):
 
 
 def plot_training_progress(losses, epsilons, save_dir):
-  fig, ax1 = plt.subplots()
-  ax1 = fig.add_subplot()
+  fig = plt.figure(constrained_layout=True)
+  gs = fig.add_gridspec(5, 5)
+  ax1 = fig.add_subplot(gs[:3, :])
   ax1.set_title("Q-Network Training Loss")
   ax1.set_xlabel("Updates")
   ax1.set_ylabel("MSE TD Error")
   ax1.set_yscale("log")
   ax1.plot(np.arange(len(losses)), losses)
-  ax2 = ax1.twinx()
+
+  ax2 = fig.add_subplot(gs[3:, :])
+  ax1.set_title("Epsilon decay over time")
+  ax2.set_xlabel("Game Steps")
   ax2.set_ylabel("Epsilon")
-  ax2.plot(np.arange(len(losses)), epsilons, c="grey", alpha=0.75)
+  ax2.plot(np.arange(len(epsilons)), epsilons, c="grey")
   fig.savefig(save_dir)
   plt.close(fig)
 
