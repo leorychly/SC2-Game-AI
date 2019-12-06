@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from pathlib2 import Path
 
 import torch
 import torch.nn.functional as F
@@ -16,16 +17,16 @@ class DQNAgent():
   def __init__(self,
                state_dim,
                action_dim,
-               buffer_size,
-               batch_size,
-               gamma,
-               tau,
-               lr,
-               training_interval,
-               epsilon,
-               epsilon_decay,
-               epsilon_min,
-               device):
+               buffer_size=int(1e5),
+               batch_size=32,
+               gamma=0.99,
+               tau=1e-3,
+               lr=1e-4,
+               training_interval=1,
+               epsilon=0.999,
+               epsilon_decay=0.9995,
+               epsilon_min=0.05,
+               device="cpu"):
     """
     Initialize the Deep Q Learning agent.
 
@@ -60,8 +61,11 @@ class DQNAgent():
       network calculations repectively.
     """
     self.device = device
-    self.train_process_data_fname = "./results/dqn_training.npy"
-    self.train_process_plot_fname = "./results/dqn_training.png"
+    self.save_path = Path("./results")
+    self.train_process_data_fname = Path("dqn_training.npy")
+    self.train_process_plot_fname = Path("dqn_training.png")
+    self.save_path.mkdir(parents=True, exist_ok=True)
+
 
     self.action_dim = action_dim
     self.batch_size = batch_size
@@ -202,10 +206,11 @@ class DQNAgent():
     self.epsilon_history.append(self.epsilon)
     self.training_summary.append(loss_npy)
     if self.global_training_step % 100 == 0:
-      np.save(self.train_process_data_fname, self.training_summary)
+      np.save(str((self.save_path / self.train_process_data_fname).absolute()),
+              self.training_summary)
       plot_training_progress(self.training_summary,
                              self.epsilon_history,
-                             save_dir=self.train_process_plot_fname)
+                             save_dir=str((self.save_path / self.train_process_plot_fname).absolute()))
 
   def save(self, file_path):
     file_path.mkdir(parents=True, exist_ok=True)

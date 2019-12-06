@@ -44,9 +44,14 @@ def build_supply_depot(world_state):
   supply_depots = Interface.get_units_by_type(
     obs, units.Terran.SupplyDepot, enemy=False)
   scvs = Interface.get_units_by_type(obs, units.Terran.SCV, enemy=False)
-  if (len(supply_depots) == 0 and obs.observation.player.minerals >= 100 and
+  if (len(supply_depots) < 2 and obs.observation.player.minerals >= 100 and
     len(scvs) > 0):
-    supply_depot_xy = (22, 26) if base_top_left else (35, 42)
+    if len(supply_depots) == 0:
+      supply_depot_xy = (22, 26) if base_top_left else (35, 42)
+    elif len(supply_depots) == 1:
+      supply_depot_xy = (18, 28) if base_top_left else (38, 40)
+    else:
+      supply_depot_xy = (20, 28) if base_top_left else (33, 44)
     distances = Interface.get_distances(obs, scvs, supply_depot_xy)
     scv = scvs[np.argmin(distances)]
     return actions.RAW_FUNCTIONS.Build_SupplyDepot_pt(
@@ -62,9 +67,12 @@ def build_barracks(world_state):
   barrackses = Interface.get_units_by_type(
     obs, units.Terran.Barracks, enemy=False)
   scvs = Interface.get_units_by_type(obs, units.Terran.SCV, enemy=False)
-  if (len(completed_supply_depots) > 0 and len(barrackses) == 0 and
+  if (len(completed_supply_depots) > 0 and len(barrackses) < 2 and
     obs.observation.player.minerals >= 150 and len(scvs) > 0):
-    barracks_xy = (22, 21) if base_top_left else (35, 45)
+    if len(barrackses) == 0:
+      barracks_xy = (22, 21) if base_top_left else (35, 45)
+    else:
+      barracks_xy = (26, 21) if base_top_left else (30, 45)
     distances = Interface.get_distances(obs, scvs, barracks_xy)
     scv = scvs[np.argmin(distances)]
     return actions.RAW_FUNCTIONS.Build_Barracks_pt(

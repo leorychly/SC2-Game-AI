@@ -18,7 +18,7 @@ def main(unused_argv):
         action_space=actions.ActionSpace.RAW,
         use_raw_units=True,
         raw_resolution=64),
-      step_mul=10,
+      step_mul=15,
       realtime=False,
       disable_fog=True,
       score_index=-1) as env:

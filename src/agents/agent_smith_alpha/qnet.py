@@ -24,13 +24,13 @@ class QNet(nn.Module):
 
   def _create_network(self, state_dim, action_dim):
     module_list = nn.Sequential(
-      nn.Linear(in_features=state_dim, out_features=512),
+      nn.Linear(in_features=state_dim, out_features=256),
       nn.ReLU(),
-      nn.Linear(in_features=512, out_features=256),
+      nn.Linear(in_features=256, out_features=256),
       nn.ReLU(),
-      nn.Linear(in_features=256, out_features=128),
+      nn.Linear(in_features=256, out_features=256),
       nn.ReLU(),
-      nn.Linear(in_features=128, out_features=action_dim))
+      nn.Linear(in_features=256, out_features=action_dim))
     return module_list
 
   def forward(self, x):

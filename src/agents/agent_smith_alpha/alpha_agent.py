@@ -1,9 +1,7 @@
 import torch
 import numpy as np
-from physt import h1
 from pathlib2 import Path
 from absl import logging
-import matplotlib.pyplot as plt
 from pysc2.lib import actions, features, units
 
 from src.commons import WorldState
@@ -15,25 +13,18 @@ from src.agents.agent_smith_alpha import reward_fn
 from src.agents.agent_smith_alpha.dqn import DQNAgent
 from src.agents.agent_smith_alpha import plotting
 
+# TODO: add avrg reward per game
 # TODO: change all file paths to pathlib2.Paths
-
+# TODO: add agent playing against it self
+# TODO: win/draw/loss plotting is not at 100% after first games
 
 class AgentSmithAlpha(Agent):
-  def __init__(self,
-               buffer_size=int(1e6),
-               batch_size=16,
-               gamma=0.99,
-               tau=1e-3,
-               lr=1e-4,
-               training_interval=5,
-               epsilon=0.999,
-               epsilon_decay=0.995,
-               epsilon_min=0.05):
+  def __init__(self):
     super(AgentSmithAlpha, self).__init__()
     self.interface = Interface()
     self.actions = Actions()
     self.observer = CraftedObserver()
-    self.reward_fn = reward_fn.KillScoreRewardFn()
+    self.reward_fn = reward_fn.SparseRewardFn()
 
     self.prev_state = None
     self.prev_action = None
@@ -42,21 +33,12 @@ class AgentSmithAlpha(Agent):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     self.policy = DQNAgent(state_dim=len(self.observer),
                            action_dim=len(self.actions),
-                           buffer_size=buffer_size,
-                           batch_size=batch_size,
-                           gamma=gamma,
-                           tau=tau,
-                           lr=lr,
-                           training_interval=training_interval,
-                           epsilon=epsilon,
-                           epsilon_decay=epsilon_decay,
-                           epsilon_min=epsilon_min,
                            device=device)
 
-    self.action_hist_fname = "./results/hist.png"
+    self.action_hist_fname = "./results/action_hist.png"
     self.data_progress_fname = "./results/training_progress.npy"
     self.plot_progress_fname = "./results/training_progress.png"
-    self.model_path = Path("./results/dqn/")
+    self.model_path = Path("./results/dqn_model/")
     try:
       self.policy.load(self.model_path)
       logging.info(f"The model was loaded from "
@@ -97,8 +79,8 @@ class AgentSmithAlpha(Agent):
   def _step(self, obs, state, reward, done):
     action = self.choose_action(state)
     if self.prev_action is not None:
-      #if not self.is_same_state(self.prev_state, state):
-      self.policy.step(state=self.prev_state,
+      if not self.is_same_state(self.prev_state, state):
+        self.policy.step(state=self.prev_state,
                        action=self.prev_action,
                        reward=reward,
                        next_state=state,
@@ -116,6 +98,8 @@ class AgentSmithAlpha(Agent):
     self.actions.set_base_pos(self.base_top_left)
 
   def _last_step(self, obs, state, reward, done):
+    if obs.reward == 1:
+      reward += 10
     self.policy.step(state=self.prev_state,
                      action=self.prev_action,
                      reward=reward,
@@ -131,10 +115,19 @@ class AgentSmithAlpha(Agent):
     #return True if np.allclose(s1, s2, rtol=0.1) else False
     return np.array_equal(s1, s2)
 
+  #def choose_action(self, state):
+  #  state = np.asarray(state)
+  #  action = self.policy(state)
+  #  return action
+
   def choose_action(self, state):
-    state = np.asarray(state)
-    action = self.policy(state)
-    return action
+    if np.random.random() < 0.2:
+      a_idx = np.random.randint(len(self.actions) - 2)
+    elif np.random.random() < 0.2:
+      a_idx = 5  # attack
+    else:
+      a_idx = 4  # build marine
+    return a_idx
 
   def reward_function(self, obs):
     reward = self.reward_fn(obs)
