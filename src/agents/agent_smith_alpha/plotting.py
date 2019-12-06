@@ -80,8 +80,8 @@ def plot_action_histogram(data, save_dir):
 
 
 def test_plot_action_histogram():
-  data = [{"actions_taken": [10,4,2]},
-          {"actions_taken": [2,1,1]}]
+  data = [{"actions_taken": [10, 4, 2]},
+          {"actions_taken": [2, 1, 1]}]
   plot_action_histogram(data, "./test_actions.png")
 
 
