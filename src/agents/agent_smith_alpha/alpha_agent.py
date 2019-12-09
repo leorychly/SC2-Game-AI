@@ -115,12 +115,12 @@ class AgentSmithAlpha(Agent):
     #return True if np.allclose(s1, s2, rtol=0.1) else False
     return np.array_equal(s1, s2)
 
-  #def choose_action(self, state):
-  #  state = np.asarray(state)
-  #  action = self.policy(state)
-  #  return action
-
   def choose_action(self, state):
+    state = np.asarray(state)
+    action = self.policy(state)
+    return action
+
+  def choose_action_custom(self, state):
     if np.random.random() < 0.2:
       a_idx = np.random.randint(len(self.actions) - 2)
     elif np.random.random() < 0.2:

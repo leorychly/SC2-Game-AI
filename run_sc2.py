@@ -22,7 +22,7 @@ def main(unused_argv):
       realtime=False,
       disable_fog=True,
       score_index=-1) as env:
-      run_loop.run_loop([agent1, agent2], env, max_episodes=1000)
+      run_loop.run_loop([agent1, agent2], env, max_episodes=10000)
   except KeyboardInterrupt:
     pass
 

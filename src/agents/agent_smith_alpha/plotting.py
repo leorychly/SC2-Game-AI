@@ -46,18 +46,25 @@ def plot_progress(data, save_dir):
   plt.close(fig1)
 
 
-def plot_training_progress(losses, epsilons, save_dir):
-  fig = plt.figure(constrained_layout=True)
-  gs = fig.add_gridspec(5, 5)
-  ax1 = fig.add_subplot(gs[:3, :])
+def plot_training_progress(rewards, losses, epsilons, save_dir):
+  fig = plt.figure(constrained_layout=True, )
+  gs = fig.add_gridspec(8, 8)
+  ax0 = fig.add_subplot(gs[:3, :])
+  ax0.set_title("Average Reward")
+  ax0.set_xlabel("Game Steps")
+  ax0.set_ylabel("Average Reward")
+  ax0.plot(np.arange(len(rewards)), rewards)
+  #ax0.set_xscale([0, 1])
+
+  ax1 = fig.add_subplot(gs[3:6, :])
   ax1.set_title("Q-Network Training Loss")
   ax1.set_xlabel("Updates")
   ax1.set_ylabel("MSE TD Error")
-  ax1.set_yscale("log")
+  #ax1.set_yscale("log")
   ax1.plot(np.arange(len(losses)), losses)
 
-  ax2 = fig.add_subplot(gs[3:, :])
-  ax1.set_title("Epsilon decay over time")
+  ax2 = fig.add_subplot(gs[6:, :])
+  ax2.set_title("Epsilon decay over time")
   ax2.set_xlabel("Game Steps")
   ax2.set_ylabel("Epsilon")
   ax2.plot(np.arange(len(epsilons)), epsilons, c="grey")
