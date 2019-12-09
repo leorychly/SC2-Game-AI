@@ -1,104 +1,97 @@
 import random
 import torch
 import numpy as np
-from collections import deque
+
+from src.utils.data_structures import MinSegmentTree, SumSegmentTree
 
 
-class SumTree:
-  """
-  Sum Tree data structure.
-
-  A Sum Tree is a Binary Tree data structure where each parent node has a
-  maximum of 2 child nodes. In Sum Trees the value of a parent node is equal to
-  the sum of the values of its children.
-  """
-
-  write = 0
-
-  def __init__(self, capacity):
-    self.capacity = capacity
-    self.tree = np.zeros(2 * capacity - 1)
-    self.data = np.zeros(capacity, dtype=object)
-
-  def _propagate(self, idx, change):
-    parent = (idx - 1) // 2
-
-    self.tree[parent] += change
-
-    if parent != 0:
-      self._propagate(parent, change)
-
-  def _retrieve(self, idx, s):
-    left = 2 * idx + 1
-    right = left + 1
-
-    if left >= len(self.tree):
-      return idx
-
-    if s <= self.tree[left]:
-      return self._retrieve(left, s)
-    else:
-      return self._retrieve(right, s - self.tree[left])
-
-  def total(self):
-    return self.tree[0]
-
-  def add(self, p, data):
-    idx = self.write + self.capacity - 1
-
-    self.data[self.write] = data
-    self.update(idx, p)
-
-    self.write += 1
-    if self.write >= self.capacity:
-      self.write = 0
-
-  def update(self, idx, p):
-    change = p - self.tree[idx]
-
-    self.tree[idx] = p
-    self._propagate(idx, change)
-
-  def get(self, s):
-    idx = self._retrieve(0, s)
-    dataIdx = idx - self.capacity + 1
-
-    return idx, self.tree[idx], self.data[dataIdx]
-
-
-class PrioritizedBuffer:
-
-  def __init__(self, max_size, device, alpha=0.6, beta=0.4):
+class PrioritizedBuffer(object):
+  def __init__(self,
+               max_size,
+               device,
+               alpha=0.6,
+               beta_start=0.4,
+               beta_frames=100000):
+    #super(PrioritizedReplayMemory, self).__init__()
     self.device = device
-    self.sum_tree = SumTree(max_size)
-    self.alpha = alpha
-    self.beta = beta
-    self.current_length = 0
+    self._storage = []
+    self._maxsize = max_size
+    self._next_idx = 0
 
-  def push(self, state, action, reward, next_state, done):
-    priority = 1.0 if self.current_length is 0 else self.sum_tree.tree.max()
-    self.current_length = self.current_length + 1
-    # priority = td_error ** self.alpha
-    experience = (state, action, np.array([reward]), next_state, done)
-    self.sum_tree.add(priority, experience)
+    assert alpha >= 0
+    self._alpha = alpha
 
-  def sample(self, batch_size):
-    batch_idx, batch, IS_weights = [], [], []
-    segment = self.sum_tree.total() / batch_size
-    p_sum = self.sum_tree.tree[0]
+    self.beta_start = beta_start
+    self.beta_frames = beta_frames
+    self.frame = 1
 
-    for i in range(batch_size):
-      a = segment * i
-      b = segment * (i + 1)
-      s = random.uniform(a, b)
-      idx, p, data = self.sum_tree.get(s)
-      batch_idx.append(idx)
-      batch.append(data)
-      prob = p / p_sum
-      IS_weight = (self.sum_tree.total() * prob) ** (-self.beta)
-      IS_weights.append(IS_weight)
+    it_capacity = 1
+    while it_capacity < max_size:
+      it_capacity *= 2
 
-    batch = np.asarray(batch)
+    self._it_sum = SumSegmentTree(it_capacity)
+    self._it_min = MinSegmentTree(it_capacity)
+    self._max_priority = 1.0
+
+  def __len__(self):
+    return len(self._storage)
+
+  def beta_by_frame(self, frame_idx):
+    return min(1.0, self.beta_start + frame_idx * (
+        1.0 - self.beta_start) / self.beta_frames)
+
+  def push(self,  state, action, reward, next_state, done):
+    data = (state, action, reward, next_state, done)
+    idx = self._next_idx
+    if self._next_idx >= len(self._storage):
+      self._storage.append(data)
+    else:
+      self._storage[self._next_idx] = data
+    self._next_idx = (self._next_idx + 1) % self._maxsize
+    self._it_sum[idx] = self._max_priority ** self._alpha
+    self._it_min[idx] = self._max_priority ** self._alpha
+
+  def _encode_sample(self, idxes):
+    return [self._storage[i] for i in idxes]
+
+  def _sample_proportional(self, batch_size):
+    res = []
+    for _ in range(batch_size):
+      mass = random.random() * self._it_sum.sum(0, len(self._storage) - 1)
+      idx = self._it_sum.find_prefixsum_idx(mass)
+      res.append(idx)
+    return res
+
+  def update_priorities(self, idxes, priorities):
+    assert len(idxes) == len(priorities)
+    for idx, priority in zip(idxes, priorities):
+      assert 0 <= idx < len(self._storage)
+      self._it_sum[idx] = (priority + 1e-5) ** self._alpha
+      self._it_min[idx] = (priority + 1e-5) ** self._alpha
+      self._max_priority = max(self._max_priority, (priority + 1e-5))
+
+  def sample(self, batch_size, return_weights=False):
+    idxes = self._sample_proportional(batch_size)
+
+    weights = []
+
+    # find smallest sampling prob:
+    # p_min = smallest priority^alpha / sum of priorities^alpha
+    p_min = self._it_min.min() / self._it_sum.sum()
+
+    beta = self.beta_by_frame(self.frame)
+    self.frame += 1
+
+    # max_weight given to smallest prob
+    max_weight = (p_min * len(self._storage)) ** (-beta)
+
+    for idx in idxes:
+      p_sample = self._it_sum[idx] / self._it_sum.sum()
+      weight = (p_sample * len(self._storage)) ** (-beta)
+      weights.append(weight / max_weight)
+    weights = torch.tensor(weights, device=self.device, dtype=torch.float)
+    encoded_sample = self._encode_sample(idxes)
+    batch = np.asarray([experience for experience in encoded_sample])
     states = np.vstack(batch[:, 0])
     actions = np.vstack(batch[:, 1])
     rewards = np.vstack(batch[:, 2])
@@ -110,29 +103,9 @@ class PrioritizedBuffer:
     next_states = torch.from_numpy(next_states).float().to(device=self.device)
     dones = torch.from_numpy(dones.astype(np.uint8)).float().to(
       device=self.device)
+    if return_weights:
+      batch = states, actions, rewards, next_states, dones
+      return batch, idxes, weights
     return states, actions, rewards, next_states, dones
-   # return (states, actions, rewards, next_states, dones), batch_idx, IS_weights
+    # return encoded_sample, idxes, weights
 
-    # state_batch = []
-    # action_batch = []
-    # reward_batch = []
-    # next_state_batch = []
-    # done_batch = []
-
-    # for transition in batch:
-    #   state, action, reward, next_state, done = transition
-    #   state_batch.append(state)
-    #   action_batch.append(action)
-    #   reward_batch.append(reward)
-    #   next_state_batch.append(next_state)
-    #   done_batch.append(done)
-
-    # return (state_batch, action_batch, reward_batch, next_state_batch,
-    #         done_batch), batch_idx, IS_weights
-
-  def update_priority(self, idx, td_error):
-    priority = td_error ** self.alpha
-    self.sum_tree.update(idx, priority)
-
-  def __len__(self):
-    return self.current_length

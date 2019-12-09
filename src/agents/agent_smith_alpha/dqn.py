@@ -11,6 +11,9 @@ from src.agents.agent_smith_alpha.buffer_simple import SimpleBuffer
 from src.agents.agent_smith_alpha.buffer_prioritized import PrioritizedBuffer
 from src.agents.agent_smith_alpha.plotting import plot_training_progress
 
+# TODO: log_progress() add avrg reward score as third row in the plot
+
+
 class DQNAgent():
   """Normal and Clipped Double Deep Q-Learning Agent."""
 
@@ -18,7 +21,7 @@ class DQNAgent():
                state_dim,
                action_dim,
                buffer_size=int(1e5),
-               batch_size=32,
+               batch_size=64,
                gamma=0.99,
                tau=1e-3,
                lr=1e-4,
@@ -76,7 +79,7 @@ class DQNAgent():
     self.epsilon_decay = epsilon_decay
     self.epsilon_min = epsilon_min
     self.memory = SimpleBuffer(max_size=buffer_size, device=device)
-    #self.memory = PrioritizedBuffer(max_size=buffer_size, device=device)
+    # self.memory = PrioritizedBuffer(max_size=buffer_size, device=device)
     self.global_training_step = 0
     self.qnet1 = QNet(state_dim, action_dim).to(device)
     self.qnet2 = QNet(state_dim, action_dim).to(device)
@@ -84,6 +87,8 @@ class DQNAgent():
     self.optimizer2 = optim.Adam(self.qnet2.parameters(), lr=lr)
     self.training_summary = []
     self.epsilon_history = []
+    self.total_reward = 0
+    self.reward_history = []
 
   def __call__(self, obs):
     return self.plan(obs)
@@ -113,11 +118,14 @@ class DQNAgent():
 
   def step(self, state, action, reward, next_state, done):
     self.memory.push(state, action, reward, next_state, done)
+    self.total_reward += reward
 
     if self.global_training_step % self.training_interval == 0:
       if len(self.memory) > self.batch_size:
         batch = self.memory.sample(self.batch_size)
         self.optimize_regular(batch)
+        self.reward_history.append(self.total_reward)
+        self.total_reward = 0
     self.global_training_step += 1
 
   def optimize_regular(self, batch):
@@ -208,7 +216,8 @@ class DQNAgent():
     if self.global_training_step % 100 == 0:
       np.save(str((self.save_path / self.train_process_data_fname).absolute()),
               self.training_summary)
-      plot_training_progress(self.training_summary,
+      plot_training_progress(self.reward_history,
+                             self.training_summary,
                              self.epsilon_history,
                              save_dir=str((self.save_path / self.train_process_plot_fname).absolute()))
 
