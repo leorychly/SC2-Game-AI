@@ -10,14 +10,12 @@
 * Limited computing resources
 
 ## Problem Formulation
-For building a StarCraft2 bot the formulation of the decision making problem is especially important if learning algorithms are applied in environments with large state and action spaces as well as possibly very sparse rewards. 
-Ideally, the agent should only be rewarded for winning or losing games, since this is the single objective of StarCraft2.
-However, since typical games range from 5 to 15 minutes with approximately 100 action per minute, the rewards become extremely sparse and in combination with the large state and action space
-the agent is unlikely to converge to any useful optima. 
+For building a StarCraft2 bot the correct formulation of the decision making and learning problem is not straigt forward. Especially environments with large state and action spaces as well as very sparse rewards require a precise game state definition for the agent to observe the correct evolution of the state based on the chosen rewards.  
 
-One crucial factor is the design of a suitable __state representation__ that encodes what an action has actually achieved. 
-Otherwise, we introduce additional hidden variables (additional to the opponents actions) that a Q function cannot learn about because it can never be in the state s for Q(s,a). 
-For Reinforcement Learning algorithms to be reliable, the state value s has to encode all relevant information about how future states and rewards will progress.
+A suitable __state representation__ should, therefore, encode the long-term consequences of actions. Otherwise, we introduce additional hidden variables (additional to the opponents actions) that a (Action-)Value Function cannot learn because it never is in state s for Q(s,a). 
+Therefore, the state value s has to encode all relevant information about how future states and rewards will progress for Reinforcement Learning algorithms to be reliable.
+
+Ideally, the agent should only be rewarded for winning or losing games, since this is the single objective of StarCraft2. However, since typical games range from 5 to 15 minutes with approximately 100 action per minute, the rewards become extremely sparse and in combination with the large state and action space the agent is likely to converge to suboptimal extrema.
 
 So different state observer creating different state representations will be implemented:
 * (1) A simple handcrafted state which encodes all buildings, units, and the disposable resources.
