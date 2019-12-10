@@ -21,10 +21,10 @@ class DQNAgent():
                state_dim,
                action_dim,
                buffer_size=int(1e5),
-               batch_size=64,
+               batch_size=128,
                gamma=0.99,
                tau=1e-3,
-               lr=1e-4,
+               lr=8e-5,
                training_interval=1,
                epsilon=0.999,
                epsilon_decay=0.9995,
@@ -213,7 +213,7 @@ class DQNAgent():
   def log_progress(self, loss_npy):
     self.epsilon_history.append(self.epsilon)
     self.training_summary.append(loss_npy)
-    if self.global_training_step % 100 == 0:
+    if self.global_training_step % 100 == 0 and self.global_training_step > 0:
       np.save(str((self.save_path / self.train_process_data_fname).absolute()),
               self.training_summary)
       plot_training_progress(self.reward_history,

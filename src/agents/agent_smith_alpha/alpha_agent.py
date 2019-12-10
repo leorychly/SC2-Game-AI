@@ -18,7 +18,9 @@ from src.agents.agent_smith_alpha import plotting
 # TODO: add agent playing against it self
 # TODO: win/draw/loss plotting is not at 100% after first games
 
+
 class AgentSmithAlpha(Agent):
+
   def __init__(self):
     super(AgentSmithAlpha, self).__init__()
     self.interface = Interface()
