@@ -20,14 +20,14 @@ class DQNAgent():
   def __init__(self,
                state_dim,
                action_dim,
-               buffer_size=int(1e5),
+               buffer_size=int(1e6),
                batch_size=128,
                gamma=0.99,
                tau=1e-3,
                lr=8e-5,
                training_interval=1,
-               epsilon=0.999,
-               epsilon_decay=0.9995,
+               epsilon=0.9999,
+               epsilon_decay=0.9999,
                epsilon_min=0.05,
                device="cpu"):
     """
@@ -79,7 +79,6 @@ class DQNAgent():
     self.epsilon_decay = epsilon_decay
     self.epsilon_min = epsilon_min
     self.memory = SimpleBuffer(max_size=buffer_size, device=device)
-    # self.memory = PrioritizedBuffer(max_size=buffer_size, device=device)
     self.global_training_step = 0
     self.qnet1 = QNet(state_dim, action_dim).to(device)
     self.qnet2 = QNet(state_dim, action_dim).to(device)

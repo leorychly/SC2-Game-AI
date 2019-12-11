@@ -65,7 +65,7 @@ def plot_training_progress(rewards, losses, epsilons, save_dir):
 
   ax2 = fig.add_subplot(gs[6:, :])
   ax2.set_title("Epsilon decay over time")
-  ax2.set_xlabel("Game Steps")
+  ax2.set_xlabel("Trained Steps")
   ax2.set_ylabel("Epsilon")
   ax2.plot(np.arange(len(epsilons)), epsilons, c="grey")
   fig.savefig(save_dir)
