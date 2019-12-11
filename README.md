@@ -48,7 +48,7 @@ To start the training of the DDQN Agent vs a standard StarCraft Bot run ```pytho
 
 # Results
 ### DQN with semantic state and limited action space
-Because of the limited action space a random policy is already very good since the necessary action like building barracks, supply depots and training marines are executed regularly. 
+Because of the limited action space a random policy is already very good since the necessary actions, like building barracks, supply depots and training marines are executed regularly. 
 * __State Space__: custom vector (src/observer/crafted_observer.py) of size 21. 
 ```
 [#CommandCenter, #SCVs, #IdleS_CVs, #Depots, #Completed_Depots, #Barracks, #Completed_Barracks, #Marines, #Queued_Marines, Free_Supply, BOOL_can_afford_depot, BOOL_can_afford_barracks, BOOL_can_afford_marine, #Enemy_Command_Centers, #Enemy_SCVs, #Enemy_Idle_SCVs, #Enemy_Depots, #Enemy_Completed_Depots, #Enemy_Barracks, #Enemy_Completed_Barracks, #Enemy_Marines]
