@@ -47,7 +47,7 @@ To start the training of the DDQN Agent vs a standard StarCraft Bot run ```pytho
 ---
 
 # Results
-### DQN with semantic state and limited action space
+### Agent Smith Alpha: DQN with semantic state and limited action space
 Because of the limited action space a random policy is already very good since the necessary actions, like building barracks, supply depots and training marines are executed regularly. 
 * __State Space__: custom vector (src/observer/crafted_observer.py) of size 21. 
 ```
