@@ -2,14 +2,13 @@ import torch
 import numpy as np
 from pathlib2 import Path
 from absl import logging
-from pysc2.lib import actions, features, units
 
 from src.commons import WorldState
 from src.agents.base_agent import Agent
 from src.pysc2_interface.interface import Interface
 from src.pysc2_actions.actions import Actions
 from src.observer.crafted_observer import CraftedObserver
-from src.agents.agent_smith_alpha import reward_fn
+from src.agents import reward_fn
 from src.agents.agent_smith_alpha.dqn import DQNAgent
 from src.agents.agent_smith_alpha import plotting
 
