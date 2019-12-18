@@ -69,8 +69,8 @@ Double Deep Q-Learning with semantic state and limited action space. Because of 
 	* Buffer Size: 1e6
 	* Trained with Epsilon-Greedy
 
-After training the agent for about 800 games the agent reached a win rate of ~70%. The left training plot below shows the progress during training. The plot on the right shows the agent playing with random exploration completely turned off for a final evaluation. 
-The agent adopted a strategy where it first starts building marines for defending the opposing agent, which regularly attacks with small groups of units. After the first few waves were successfully defended it attacks with most of its units to defeat the opponent.
+After training the agent for about 800 games the agent reached a win rate of ~70%. The left training plot below shows the progress during training. The plot on the right shows the agent playing with random exploration completely turned off for final evaluation. 
+The agent adopted a strategy where it first starts building marines for defending the opposing agent which regularly attacks with small groups of units. After the first few waves are successfully defended the trained agent attacks with most of its units to defeat the opponent.
 
 ---
 
