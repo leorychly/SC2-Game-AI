@@ -38,6 +38,8 @@ So different state observer creating different state representations will be imp
 ---
 
 ## Install and Run
+First, a working version of StarCraft 2 needs to be installed. For Linux users Blizzard provides a [Binary](https://github.com/deepmind/pysc2). On MacOS the regular version needs to be installed using the [Battle.net](https://www.blizzard.com/de-de/apps/battle.net/desktop) app.
+
 To create a virtualenv and install all required libraries run ```install.sh```
 
 To start the training of the DDQN Agent vs a Random Agent run ```python run_sc2.py```
