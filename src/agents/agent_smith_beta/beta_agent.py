@@ -6,17 +6,20 @@ from absl import logging
 from src.commons import WorldState
 from src.agents.base_agent import Agent
 from src.pysc2_interface.interface import Interface
-from src.pysc2_actions.actions import Actions
+from src.pysc2_actions.categorical_actions import Actions
 from src.observer.hybrid_observer import HybridObserver
 
 from src.agents import reward_fn
-from src.agents.agent_smith_beta.dqn import DQNAgent
+from src.agents.agent_smith_beta.td3 import TD3Agent
 from src.agents.agent_smith_alpha import plotting
 
-# TODO: add avrg reward per game
-# TODO: change all file paths to pathlib2.Paths
-# TODO: add agent playing against it self
-# TODO: win/draw/loss plotting is not at 100% after first games
+# TODO:
+# add avrg reward per game
+# change all file paths to pathlib2.Paths
+# add agent playing against it self
+# win/draw/loss plotting is not at 100% after first games
+
+# TODO: Adjust this script to state split
 
 
 class AgentSmithBeta(Agent):
@@ -33,14 +36,15 @@ class AgentSmithBeta(Agent):
     self.base_top_left = None
     self.progress_data = []
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    self.policy = DQNAgent(state_dim=self.observer.shape,
+    self.policy = TD3Agent(state_dim=self.observer.shape,
                            action_dim=len(self.actions),
+                           action_limits=self.actions,  # TODO set limits!
                            device=device)
 
     self.action_hist_fname = "./results/action_hist.png"
     self.data_progress_fname = "./results/training_progress.npy"
     self.plot_progress_fname = "./results/training_progress.png"
-    self.model_path = Path("./results/dqn_model/")
+    self.model_path = Path("./results/td3_model/")
     try:
       self.policy.load(self.model_path)
       logging.info(f"The model was loaded from "
@@ -68,7 +72,7 @@ class AgentSmithBeta(Agent):
   def step(self, obs):
     self.game_step += 1
     state = self.observer.get_state(obs)
-    state_pix, state_semantic = state
+    state_pix, state_sem = state
     reward = self.reward_function(obs)
     done = obs.last()
     if obs.first():

@@ -8,15 +8,26 @@ from torchsummary import summary
 
 class Actor(nn.Module):
 
-  def __init__(self, channel_dim, action_dim, vect_state_size):
+  def __init__(self, img_state_channel_dim, vect_state_len, action_space_dim):
+    """
+    Create the actor network of the TD3 Algorithm.
+
+    :param img_state_channel_dim: Int
+      Number of channels of the image input tensor.
+    :param vect_state_len: Int
+      Size of th semantic state input vector.
+    :param action_space_dim: Int
+      Shape of the action space.
+      E.g. for a combination of a 10-Action 1-hot encoding + 2 Regression
+      outputs, the action_space_dim would be of size 12.
+    """
     super(Actor, self).__init__()
 
     input_shape = (3, 7, 7)
     conv_output_dim = 16 * 2 * 2
-    vect_state_size = vect_state_size
 
     self.conv_modules = nn.Sequential(
-      nn.Conv2d(channel_dim, 32, kernel_size=5, stride=1, padding=0),
+      nn.Conv2d(img_state_channel_dim, 32, kernel_size=5, stride=1, padding=0),
       nn.ReLU(),
       nn.MaxPool2d(kernel_size=5),
       nn.Conv2d(32, 32, kernel_size=2, stride=1, padding=0),
@@ -28,17 +39,18 @@ class Actor(nn.Module):
     print(f"Q-Network Conv Input Shape {input_shape}, "
           f"Conv Output: {conv_output_dim}")
     summary(self.conv_modules, input_shape, device="cpu")
+
     self.dense_modules = nn.Sequential(
-      nn.Linear(conv_output_dim + vect_state_size, 128),
+      nn.Linear(conv_output_dim + vect_state_len, 128),
       nn.ReLU(),
       nn.Linear(256, 256),
       nn.ReLU(),
       nn.Linear(256, 128),
       nn.ReLU(),
-      nn.Linear(128, action_dim))
+      nn.Linear(128, action_space_dim))
     print(f"Actor Dense Input Shape {input_shape}, "
           f"Conv Output: {conv_output_dim}")
-    summary(self.dense_modules, conv_output_dim + vect_state_size, device="cpu")
+    summary(self.dense_modules, conv_output_dim + vect_state_len, device="cpu")
     logging.info("Actor initialized")
 
   def forward(self, x):

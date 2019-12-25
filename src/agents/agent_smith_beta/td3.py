@@ -2,191 +2,144 @@ import time
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib2 import Path
 from absl import logging
 from gym import wrappers
 import torch
 import torch.nn.functional as F
 
-from src.agents.td3.td3_utils import Actor, Critic, ReplayBuffer
+from src.agents.agent_smith_beta import td3_actor, td3_critic, buffer_simple
 
 
 class TD3Agent:
+
   def __init__(
     self,
-    env,
-    actor_layer,
-    critic_layer,
-    actor_lr,  # =3e-4,
-    critic_lr,  # =3e-4,
-    observer,  # =None,
-    executer,  # =None,
-    buffer_size,  # =10000,
-    discount,  # =0.99,
-    tau,  # =0.005,
-    policy_noise,  # =0.2,
-    noise_clip,  # =0.5,
-    policy_freq,
+    state_dim,
+    action_dim,
+    action_limits,
     device,
-    **unused_kwargs):  # =2):
+    actor_lr=3e-4,
+    critic_lr=3e-4,
+    batch_size=64,
+    buffer_size=10000,
+    discount=0.99,
+    tau=0.005,
+    policy_noise=0.2,
+    expl_noise=0.1,
+    noise_clip=0.5,
+    training_interval=2,
+    policy_update_freq=2,
+    **unused_kwargs):
+    """
+    Initialize the TD3 Agent.
 
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.shape[0]
-    max_action = float(env.action_space.high[0])
-    policy_noise = policy_noise * max_action
-    noise_clip = noise_clip * max_action
+    :param state_dim: Tuple
+      Containing the state sizes of the tensor and vector state parts.
+      E.g.: ( (28, 28, 3),  7 )
+    :param action_dim: Tuple
+      Containing the both, the number of possible actions as well as the
+      contrinuous actions.
+      E.g.: For 13 1-hot encoded action and 2 continuous
+      actions: (13, 2)
+    :param action_limits: nd.array
+      Min and Max values of the actions in the shape of
+      [[min1, min2, ...], [max1, max2, ...]]
+    :param device:
+    :param actor_lr: Float
+    :param critic_lr: Float
+    :param buffer_size: Int
+    :param discount: Float
+    :param tau: Float
+    :param policy_noise: Float
+    :param expl_noise: Float
+    :param noise_clip: Float or Int
+    :param policy_update_freq: Int
+    :param unused_kwargs: Dict
+    """
+    self.save_path = Path("./results")
+    self.train_process_data_fname = "td3_training.npy"
+    self.train_process_plot_fname = "td3_training.png"
 
-    super(TD3Agent, self).__init__(observation_space=env.observation_space,
-                                   action_space=env.action_space,
-                                   observer=observer,
-                                   executer=executer)
+    self.min_action_limit = action_limits[:, ]  # TODO: Test if vector of size len(actions)
+    self.max_action_limit = action_limits[:, 1]  # TODO: Test if vector of size len(actions)
+    policy_noise = policy_noise * self.max_action_limit
+    noise_clip = noise_clip * self.max_action_limit
 
-    self.actor = Actor(state_dim, action_dim, max_action, actor_layer)  # .to(device)
+    self.actor = td3_actor.Actor(img_state_channel_dim=state_dim[0],
+                                 vect_state_len=state_dim[1],
+                                 action_space_dim=sum(action_dim))
     self.actor = self.actor.to(device)
     self.actor_target = copy.deepcopy(self.actor)
-    self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
+    self.actor_optimizer = torch.optim.Adam(self.actor.parameters(),
+                                            lr=actor_lr)
 
-    self.critic = Critic(state_dim, action_dim, critic_layer)  # .to(device)
+    self.critic = td3_critic.Critic(img_state_channel_dim=state_dim[0],
+                                    vect_state_len=state_dim[1],
+                                    action_dim=1 + action_dim[1])
     self.critic = self.critic.to(device)
     self.critic_target = copy.deepcopy(self.critic)
-    self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
+    self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
+                                             lr=critic_lr)
 
-    self.replay_buffer = ReplayBuffer(state_dim, action_dim, max_size=buffer_size)
-
-    self.env_model = None
+    self.replay_buffer = buffer_simple.SimpleBuffer(max_size=buffer_size,
+                                                    device=device)
 
     self.action_dim = action_dim
-    self.max_action = max_action
+    self.batch_size = batch_size
     self.discount = discount
     self.tau = tau
     self.policy_noise = policy_noise
     self.noise_clip = noise_clip
-    self.policy_freq = policy_freq
-    self.device=device
+    self.expl_noise = expl_noise
+    self.device = device
 
-    self.total_iter = 0
-    self.evaluations = []
+    self.training_interval = training_interval
+    self.policy_update_freq = policy_update_freq
 
-  # TODO: is selec_action == BaseAgent.plan? How to train?
+    self.global_step = 0
+    self.total_reward = []
+    self.reward_history = []
 
-  def plan(self, state):
-    state = torch.FloatTensor(state.reshape(1, -1))
-    state = state.to(self.device)
-    action = self.actor(state).cpu().data.numpy().flatten()
-    control_action = self.executer(action)
-    return control_action
+  def plan(self, state, exploration_noise_on=True):
+    noise = np.zeros(sum(self.action_dim))
+    if exploration_noise_on:
+      noise = np.random.normal(loc=0,
+                               scale=max(abs(self.min_action_limit),
+                                         abs(self.max_action_limit))
+                                     * self.expl_noise,
+                               size=sum(self.action_dim))
+    action = self.actor(state)
+    action += noise
+    action = action.clip(self.min_action, self.max_action)
+    return action
 
-  def eval_policy_on_env(self, eval_gym_env, eval_episodes=10, seed=None):
-    """Uses the observer and executer."""
-    if not seed:
-      eval_gym_env.seed(seed)
-    else:
-      eval_gym_env.seed(int(time.time()))
-    avg_reward = 0.
-    for i in range(eval_episodes):
-      state, done = eval_gym_env.reset(), False
-      obs = self.observer(state)
-      step = 0
-      #while not done and step < max_steps:
-      while not done:
-        action = self.plan(np.array(obs))
-        state, reward, done, _ = eval_gym_env.step(action)
-        obs = self.observer(state)
-        avg_reward += reward
-        step += 1
+  def setp(self, state, action, next_state, reward, done):
+    self.replay_buffer.push(state_pix=state[0],
+                            state_sem=state[1],
+                            action=action,
+                            reward=reward,
+                            next_state_pix=next_state[0],
+                            next_state_sem=next_state[1],
+                            done=done)
+    self.total_reward.append(reward)
 
-    avg_reward /= eval_episodes
-    return avg_reward
+    if (self.global_step % self.training_interval == 0
+        and len(self.replay_buffer) > self.batch_size):
+      batch = self.replay_buffer.sample(self.batch_size)
+      self._optimize(batch)
+      avrg_reward = sum(self.total_reward) / len(self.total_reward)
+      self.reward_history.append(avrg_reward)
+      self.total_reward = []
 
-  def train(self,
-            env,
-            train_steps,
-            initial_steps,
-            model_save_path,
-            results_path,
-            expl_noise,  # =0.1,
-            batch_size,  # =100,
-            eval_steps,  # =100,
-            eval_freq=1000):
-    # Create directory for results
-    results_path.mkdir(parents=True, exist_ok=True)
+    if self.global_step % 100 == 0:
+      self._plot_results()
 
-    # Evaluate untrained policy
-    self.evaluations.append(self.eval_policy_on_env(
-      eval_gym_env=env,
-      eval_episodes=eval_steps))
+    self.global_step += 1
 
-    state, done = env.reset(), False
-    obs = self.observer(state)
-    episode_reward = 0
-    episode_timesteps = 0
-    episode_num = 0
-
-    t0 = time.time()
-    for t in range(int(train_steps)):
-
-      episode_timesteps += 1
-
-      # Select action randomly
-      if t < initial_steps:
-        action = env.action_space.sample()
-      # Select next action according to policy
-      else:
-        action = (self.plan(np.array(obs))
-                  + np.random.normal(0, self.max_action * expl_noise, size=self.action_dim)
-                 ).clip(-self.max_action, self.max_action)
-
-      # Perform action
-      next_state, reward, done, _ = env.step(action)
-      next_obs = self.observer(next_state)
-
-      done_bool = float(done) if episode_timesteps < env._max_episode_steps else 0
-
-      # Store data in replay buffer
-      self.replay_buffer.add(obs, action, next_obs, reward, done_bool)
-
-      obs = next_obs
-      episode_reward += reward
-
-      # Train agent after collecting data
-      if t >= initial_steps:
-        self._optimize(batch_size)
-
-      if done:
-        # +1 to account for 0 indexing. +0 on ep_timesteps since it will increment +1 even if done=True
-        #if (t + 1) % logg_freq == 0:
-        #  print(f"Total T: {t + 1} "
-        #        f"Episode Num: {episode_num + 1} "
-        #        f"Episode T: {episode_timesteps} "
-        #        f"Reward: {episode_reward:.3f}")
-        # Reset environment
-        state, done = env.reset(), False
-        obs = self.observer(state)
-        episode_reward = 0
-        episode_timesteps = 0
-        episode_num += 1
-
-      # Evaluate and safe episode
-      if t % eval_freq == 0:
-        avg_reward = self.eval_policy_on_env(env, eval_episodes=eval_steps)
-        logging.info(f"After Iteration {t}, "
-                     f"Evaluation over {eval_steps} episodes, "
-                     f"Average Reward: {avg_reward:.3f}, "
-                     f"({time.time() - t0:.2f} sec)")
-        t0 = time.time()
-
-        self.evaluations.append(avg_reward)
-        np.save((results_path/"results.npy").absolute().as_posix(), self.evaluations)
-        self.save(model_save_path)
-        self._plot_results(results_path)
-
-      #if t % eval_freq * 10 == 0:
-      #  self._save_as_gif(
-      #    env=env,
-      #    save_path=(results_path / f"videos/gif_epoch{t}").absolute().as_posix())
-
-  def _optimize(self, batch_size):
-    self.total_iter += 1
-    state, action, next_state, reward, not_done = self.replay_buffer.sample(batch_size)
+  def _optimize(self, batch):
+    state, action, next_state, reward, done = batch
+    # TODO: check if "done" means done or notDone
 
     with torch.no_grad():
       noise = (torch.randn_like(action) * self.policy_noise).clamp(
@@ -195,12 +148,12 @@ class TD3Agent:
         -self.max_action, self.max_action)
 
       # Compute target Q value
-      target_q1, target_q2 = self.critic_target(next_state, next_action)
+      target_q1, target_q2 = self.critic_target((next_state, next_action))
       target_q = torch.min(target_q1, target_q2)
-      target_q = reward + not_done * self.discount * target_q
+      target_q = reward + (1 - done) * self.discount * target_q
 
     # Get current Q estimates
-    current_q1, current_q2 = self.critic(state, action)
+    current_q1, current_q2 = self.critic((state, action))
 
     # Compute critic loss
     critic_loss = F.mse_loss(current_q1, target_q) + F.mse_loss(current_q2, target_q)
@@ -211,10 +164,10 @@ class TD3Agent:
     self.critic_optimizer.step()
 
     # Delayed policy updates
-    if self.total_iter % self.policy_freq == 0:
+    if self.total_iter % self.policy_update_freq == 0:
 
       # Compute actor losse
-      actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
+      actor_loss = -self.critic.Q1((state, self.actor(state))).mean()
 
       # Optimize the actor
       self.actor_optimizer.zero_grad()
@@ -250,40 +203,13 @@ class TD3Agent:
     self.actor_optimizer.load_state_dict(torch.load(
       (file_path / "td3_actor_optimizer").absolute().as_posix()))
 
-  def _plot_results(self, file_path):
+  def _plot_results(self):
     fig, ax = plt.subplots()
-    ax.plot(np.arange(len(self.evaluations)), self.evaluations)
-    ax.set(xlabel="Iterations [1k]", ylabel="Average Reward",
-           title="Average Reward of Evaluation during Training")
+    ax.plot(np.arange(len(self.reward_history)), self.reward_history)
+    ax.set(xlabel="Iterations", ylabel="Average Reward",
+           title="Reward during Training")
     ax.grid()
-    fig.savefig((file_path / "training_reward.png").absolute().as_posix())
+    fig.savefig(
+      (self.save_path / self.train_process_plot_fname).absolute().as_posix())
     plt.close()
-
-  def _save_as_gif(self, env, save_path, episodes=1000):
-    # TODO: does not work yet. ffmpeg bug...
-    env = wrappers.Monitor(env, save_path)
-    avg_reward = 0.
-    for i in range(episodes):
-      state, done = env.reset(), False
-      obs = self.observer(state)
-      while not done:
-        action = self.plan(np.array(obs))
-        state, reward, done, _ = env.step(action)
-        obs = self.observer(state)
-        avg_reward += reward
-    avg_reward /= episodes
-    return avg_reward
-
-  def get_param(self):
-    return {
-      "action_dim": self.action_dim,
-      "max_action": self.max_action,
-      "discount": self.discount,
-      "tau": self.tau,
-      "policy_noise": self.policy_noise,
-      "noise_clip": self.noise_clip,
-      "policy_freq": self.policy_freq,
-      "buffer_size": self.replay_buffer.max_size,
-      "actor_layer_param": self.actor.layer_param,  # TODO add layer_param froma ctior
-      "critic_layer_param": self.critic.layer_param
-    }
+    np.save(self.train_process_data_fname, self.reward_history)
