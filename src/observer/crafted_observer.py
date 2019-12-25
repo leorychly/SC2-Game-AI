@@ -2,7 +2,7 @@ from pysc2.lib import actions, features, units
 
 from src.observer.base_observer import BaseObserver
 from src.pysc2_interface.interface import Interface
-from src.pysc2_actions.actions import Actions
+from src.pysc2_actions.categorical_actions import Actions
 
 
 class CraftedObserver(BaseObserver):
