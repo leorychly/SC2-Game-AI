@@ -2,7 +2,7 @@ from pysc2.lib import actions, features, units
 
 from src.observer.base_observer import BaseObserver
 from src.pysc2_interface.interface import Interface
-from src.pysc2_actions.categorical_actions import Actions
+from src.pysc2_actions.categorical_actions import ActionsCategorical
 
 
 class CraftedObserver(BaseObserver):
@@ -10,7 +10,7 @@ class CraftedObserver(BaseObserver):
   def __init__(self):
     self.state_dim = 21
     self.interface = Interface()
-    self.actions = Actions()
+    self.actions = ActionsCategorical()
 
   def __len__(self):
     return self.state_dim

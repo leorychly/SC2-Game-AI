@@ -1,14 +1,14 @@
 import random
 from src.agents.base_agent import Agent
 from src.commons import WorldState
-from src.pysc2_actions.actions import Actions
+from src.pysc2_actions.categorical_actions import ActionsCategorical
 
 
 class RandomAgent(Agent):
 
   def __init__(self):
     super(RandomAgent, self).__init__()
-    self.actions = Actions()
+    self.actions = ActionsCategorical()
     self.base_top_left = None
 
   def step(self, obs):

@@ -134,7 +134,8 @@ class DQNAgent():
     loss.backward()
     self.optimizer1.step()
     self._update_target_network(self.qnet1, self.qnet2)
-    self.log_progress(loss.detach().numpy())
+    #self.log_progress(loss.detach().numpy())
+    self.log_progress(loss.cpu().detach().numpy())
 
   def _compute_regular_loss(self, batch):
     """
