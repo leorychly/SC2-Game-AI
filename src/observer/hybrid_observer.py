@@ -8,7 +8,7 @@ from pysc2.lib import actions, features, units
 from src.observer.base_observer import BaseObserver
 from src.observer.conv_autoencoder import ConvAutoencoder
 from src.pysc2_interface.interface import Interface
-from src.pysc2_actions.categorical_actions import Actions
+from src.pysc2_actions.categorical_actions import ActionsCategorical
 
 
 class HybridObserver(BaseObserver):
@@ -19,7 +19,7 @@ class HybridObserver(BaseObserver):
     self.dim_pix = (64, 64, 5)
     self.dim_sem = (312,)
     self.interface = Interface()
-    self.actions = Actions()
+    self.actions = ActionsCategorical()
 
   @property
   def shape(self):

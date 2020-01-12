@@ -1,3 +1,4 @@
+import time
 from absl import app
 from pysc2.lib import actions, features
 from pysc2.env import sc2_env, run_loop
@@ -17,12 +18,14 @@ def main(unused_argv):
   # AgentSmithBeta()
 
   screen_dim = (64, 64)
-  player_1 = AgentSmithBeta(screen_dim)
+  #player_1 = AgentSmithBeta(screen_dim)
+  player_1 = AgentSmithAlpha()
   player_2 = RandomAgent()
 
   players = [player_1, player_2]
   interface = AgentInterfaceFormat(
-    feature_dimensions=Dimensions(screen_dim),
+    feature_dimensions=Dimensions(screen=screen_dim,
+                                  minimap=screen_dim),
     action_space=actions.ActionSpace.RAW,
     use_raw_units=True,
     raw_resolution=64,
@@ -38,11 +41,14 @@ def main(unused_argv):
       step_mul=15,
       realtime=False,
       disable_fog=True,
-      score_index=-1) as env:
+      score_index=-1,
+      random_seed=None,
+      visualize=False) as env:
       run_loop.run_loop(players, env, max_episodes=10000)
-  except KeyboardInterrupt:
-    pass
-
+  except:
+    time.sleep(20)
+  #except KeyboardInterrupt:
+  #  pass
 
 if __name__ == "__main__":
   app.run(main)

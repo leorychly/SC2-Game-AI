@@ -2,6 +2,8 @@ pysc2
 numpy
 torch
 torchvision
+torchsummary
 physt
 matplotlib
 pathlib2
+gym

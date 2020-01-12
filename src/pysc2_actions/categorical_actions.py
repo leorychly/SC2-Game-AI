@@ -19,7 +19,7 @@ class ActionsCategorical(object):
       action_fn_categorical.train_marine,
       action_fn_categorical.attack
     ]
-    assert len(self._actions) == self.get_limits().shape[0]
+#    assert len(self._actions) == self.get_limits().shape[0]
 
   def __call__(self, idx):
     assert self.base_top_left != "Not set"
