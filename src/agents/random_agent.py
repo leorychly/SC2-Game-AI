@@ -1,7 +1,7 @@
 import random
 from src.agents.base_agent import Agent
 from src.commons import WorldState
-from src.pysc2_actions.actions import Actions
+from src.pysc2_actions.categorical_actions import Actions
 
 
 class RandomAgent(Agent):

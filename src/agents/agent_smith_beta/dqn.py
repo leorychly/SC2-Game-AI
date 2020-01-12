@@ -158,7 +158,7 @@ class DQNAgent:
     :return loss1:
       The MSE loss of Q-Net1.
     """
-    # TODO: 
+    # TODO:
     states, actions, rewards, next_states, dones = batch
     q_targets_next = self.qnet2(next_states).detach().max(1)[0].unsqueeze(1)
     q_targets = rewards + (self.gamma * q_targets_next * (1 - dones))

@@ -6,7 +6,7 @@ from absl import logging
 from src.commons import WorldState
 from src.agents.base_agent import Agent
 from src.pysc2_interface.interface import Interface
-from src.pysc2_actions.actions import Actions
+from src.pysc2_actions.categorical_actions import Actions
 from src.observer.crafted_observer import CraftedObserver
 from src.agents import reward_fn
 from src.agents.agent_smith_alpha.dqn import DQNAgent
