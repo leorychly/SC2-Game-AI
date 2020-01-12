@@ -28,16 +28,6 @@ class ActionsCategorical(object):
   def __len__(self):
     return len(self._actions)
 
-  def get_limits(self):
-    return np.array([
-      [None, None],
-      [None, None],
-      [None, None],
-      [None, None],
-      [None, None],
-      [None, None]
-    ])
-
   def set_base_pos(self, base_top_left):
     self.base_top_left = base_top_left
 

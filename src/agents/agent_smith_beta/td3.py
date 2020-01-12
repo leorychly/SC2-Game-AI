@@ -101,6 +101,9 @@ class TD3Agent:
     self.total_reward = []
     self.reward_history = []
 
+  def __call__(self, state):
+    return self.plan(state)
+
   def plan(self, state, exploration_noise_on=True):
     noise = np.zeros(sum(self.action_dim))
     if exploration_noise_on:
@@ -163,6 +166,9 @@ class TD3Agent:
     critic_loss.backward()
     self.critic_optimizer.step()
 
+    # TODO before testing: (!!!)
+    # TODO: Check if regression and classification output possible with
+    # TODO: ...TD3 policy update.
     # Delayed policy updates
     if self.total_iter % self.policy_update_freq == 0:
 

@@ -6,7 +6,7 @@ from absl import logging
 from src.commons import WorldState
 from src.agents.base_agent import Agent
 from src.pysc2_interface.interface import Interface
-from src.pysc2_actions.categorical_actions import Actions
+from src.pysc2_actions.hybrid_actions import ActionsHybrid
 from src.observer.hybrid_observer import HybridObserver
 
 from src.agents import reward_fn
@@ -24,10 +24,12 @@ from src.agents.agent_smith_alpha import plotting
 
 class AgentSmithBeta(Agent):
 
-  def __init__(self):
+  def __init__(self, game_screen_resolution):
     super(AgentSmithBeta, self).__init__()
+    self.game_screen_resolution = game_screen_resolution
+
     self.interface = Interface()
-    self.actions = Actions()
+    self.actions = ActionsHybrid()
     self.observer = HybridObserver()
     self.reward_fn = reward_fn.SparseRewardFn()
 
@@ -36,9 +38,15 @@ class AgentSmithBeta(Agent):
     self.base_top_left = None
     self.progress_data = []
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    action_limits = [[None, None] for _ in range(len(self.actions))]
+    action_limits.append([0, game_screen_resolution[0]])
+    action_limits.append([0, game_screen_resolution[1]])
+    action_limits = np.asarray(action_limits)
+
     self.policy = TD3Agent(state_dim=self.observer.shape,
                            action_dim=len(self.actions),
-                           action_limits=self.actions,  # TODO set limits!
+                           action_limits=action_limits,
                            device=device)
 
     self.action_hist_fname = "./results/action_hist.png"
@@ -84,7 +92,10 @@ class AgentSmithBeta(Agent):
     return pysc2_action
 
   def _step(self, obs, state, reward, done):
-    action = self.choose_action(state)
+    action_tuple = self.choose_action(state)
+    action_idx, x, y = action_tuple
+    x = x.clip(low=0, high=self.screen_resolution[0])
+    y = y.clip(low=0, high=self.screen_resolution[1])
     if self.prev_action is not None:
       # if not self.is_same_state(self.prev_state, state):
       self.policy.step(state=self.prev_state,
@@ -92,12 +103,15 @@ class AgentSmithBeta(Agent):
                        reward=reward,
                        next_state=state,
                        done=done)
-    self.log_results(obs, action)
+    self.log_results(obs, action_tuple)
     self.prev_state = state
-    self.prev_action = action
+    self.prev_action = action_tuple
 
-    world_state = WorldState(obs=obs, base_top_left=self.base_top_left)
-    pysc2_action = self.actions(action)
+    world_state = WorldState(obs=obs,
+                             base_top_left=self.base_top_left,
+                             x=x,
+                             y=y)
+    pysc2_action = self.actions(action_idx)
     return pysc2_action(world_state)
 
   def _first_step(self, obs):
@@ -124,8 +138,10 @@ class AgentSmithBeta(Agent):
 
   def choose_action(self, state):
     state = np.asarray(state)
-    action = self.policy(state)
-    return action
+    policy_output = self.policy(state)
+    action_idx = np.argmax(policy_output[:-2])
+    x, y = policy_output[-2:]
+    return action_idx, x, y
 
   def choose_action_custom(self, state):
     if np.random.random() < 0.2:
