@@ -6,7 +6,7 @@ from absl import logging
 from src.commons import WorldState
 from src.agents.base_agent import Agent
 from src.pysc2_interface.interface import Interface
-from src.pysc2_actions.categorical_actions import Actions
+from src.pysc2_actions.categorical_actions import ActionsCategorical
 from src.observer.crafted_observer import CraftedObserver
 from src.agents import reward_fn
 from src.agents.agent_smith_alpha.dqn import DQNAgent
@@ -23,7 +23,7 @@ class AgentSmithAlpha(Agent):
   def __init__(self):
     super(AgentSmithAlpha, self).__init__()
     self.interface = Interface()
-    self.actions = Actions()
+    self.actions = ActionsCategorical()
     self.observer = CraftedObserver()
     self.reward_fn = reward_fn.SparseRewardFn()
 

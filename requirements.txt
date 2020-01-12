@@ -1,5 +1,7 @@
 pysc2
 numpy
 torch
+torchvision
 physt
 matplotlib
+pathlib2

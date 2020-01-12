@@ -1,14 +1,14 @@
 from pysc2.lib import actions, features, units
 
 from src.pysc2_interface.interface import Interface
-from src.pysc2_actions.categorical_actions import Actions
+from src.pysc2_actions.categorical_actions import ActionsCategorical
 
 
 class BaseObserver(object):
 
   def __init__(self):
     self.interface = Interface()
-    self.actions = Actions()
+    self.actions = ActionsCategorical()
 
   def get_state(self, obs):
     raise NotImplementedError
