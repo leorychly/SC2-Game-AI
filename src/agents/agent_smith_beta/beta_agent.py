@@ -26,10 +26,11 @@ class AgentSmithBeta(Agent):
 
   def __init__(self, game_screen_resolution):
     super(AgentSmithBeta, self).__init__()
-    self.game_screen_resolution = game_screen_resolution
+    n_continuous_action = 2
+    self.game_screen_resolution = game_screen_resolution  # TODO: (x,y)?
 
     self.interface = Interface()
-    self.actions = ActionsHybrid()
+    self.pysc2_actions = ActionsHybrid()
     self.observer = HybridObserver()
     self.reward_fn = reward_fn.SparseRewardFn()
 
@@ -39,14 +40,14 @@ class AgentSmithBeta(Agent):
     self.progress_data = []
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    action_limits = [[None, None] for _ in range(len(self.actions))]
+    action_dim = (len(self.pysc2_actions), n_continuous_action)
+    action_limits = [[0, 1] for _ in range(len(self.pysc2_actions))]
     action_limits.append([0, game_screen_resolution[0]])
     action_limits.append([0, game_screen_resolution[1]])
     action_limits = np.asarray(action_limits)
 
     self.policy = TD3Agent(state_dim=self.observer.shape,
-                           action_dim=len(self.actions),
-                           action_limits=action_limits,
+                           action_dim=action_dim,
                            device=device)
 
     self.action_hist_fname = "./results/action_hist.png"
@@ -62,7 +63,6 @@ class AgentSmithBeta(Agent):
                    f"'{self.model_path.absolute().as_posix()}'")
 
     self.game_step = 0  # Is updated prior to each step execution
-    #self.new_game()
 
   def reset(self):
     super(AgentSmithBeta, self).reset()
@@ -75,7 +75,7 @@ class AgentSmithBeta(Agent):
     self.game_step = 0
     self.progress_data.append({"game_result": None,
                                "game_length": self.game_step,
-                               "actions_taken": np.zeros(len(self.actions))})
+                               "actions_taken": np.zeros(len(self.pysc2_actions))})
 
   def step(self, obs):
     self.game_step += 1
@@ -92,31 +92,27 @@ class AgentSmithBeta(Agent):
     return pysc2_action
 
   def _step(self, obs, state, reward, done):
-    action_tuple = self.choose_action(state)
-    action_idx, x, y = action_tuple
-    x = x.clip(low=0, high=self.screen_resolution[0])
-    y = y.clip(low=0, high=self.screen_resolution[1])
+    action_idx, x, y, policy_output = self.choose_action(state)
     if self.prev_action is not None:
-      # if not self.is_same_state(self.prev_state, state):
       self.policy.step(state=self.prev_state,
                        action=self.prev_action,
                        reward=reward,
                        next_state=state,
                        done=done)
-    self.log_results(obs, action_tuple)
+    self.log_results(obs, policy_output)
     self.prev_state = state
-    self.prev_action = action_tuple
+    self.prev_action = policy_output
 
     world_state = WorldState(obs=obs,
                              base_top_left=self.base_top_left,
-                             x=x,
-                             y=y)
-    pysc2_action = self.actions(action_idx)
+                             x=x[0],
+                             y=y[0])
+    pysc2_action = self.pysc2_actions(action_idx)
     return pysc2_action(world_state)
 
   def _first_step(self, obs):
     super(AgentSmithBeta, self).step(obs)
-    self.actions.set_base_pos(self.base_top_left)
+    self.pysc2_actions.set_base_pos(self.base_top_left)
 
   def _last_step(self, obs, state, reward, done):
     if obs.reward == 1:
@@ -126,9 +122,10 @@ class AgentSmithBeta(Agent):
                      reward=reward,
                      next_state=state,
                      done=done)
-    action = 0
+    action = np.zeros(len(self.pysc2_actions) + 2)
+    action[0] = 1  # Do Nothing action at index 0
     self.log_results(obs, action)
-    pysc2_action = self.actions.do_nothing()
+    pysc2_action = self.pysc2_actions.do_nothing()
     world_state = WorldState(obs=obs, base_top_left=self.base_top_left)
     return pysc2_action(world_state)
 
@@ -137,15 +134,21 @@ class AgentSmithBeta(Agent):
     return np.array_equal(s1, s2)
 
   def choose_action(self, state):
+    """Return 1-hot action index and X,Y cursor position."""
     state = np.asarray(state)
     policy_output = self.policy(state)
-    action_idx = np.argmax(policy_output[:-2])
-    x, y = policy_output[-2:]
-    return action_idx, x, y
+    action_idx = np.argmax(policy_output[:, :-2])
+    x = policy_output[:, -2]
+    y = policy_output[:, -1]
+    assert 0 <= x <= 1
+    assert 0 <= y <= 1
+    x *= self.game_screen_resolution[0]
+    y *= self.game_screen_resolution[1]
+    return action_idx, x, y, policy_output
 
   def choose_action_custom(self, state):
     if np.random.random() < 0.2:
-      a_idx = np.random.randint(len(self.actions) - 2)
+      a_idx = np.random.randint(len(self.pysc2_actions) - 2)
     elif np.random.random() < 0.2:
       a_idx = 5  # attack
     else:
@@ -157,7 +160,8 @@ class AgentSmithBeta(Agent):
     return reward
 
   def log_results(self, obs, action):
-    self.progress_data[-1]["actions_taken"][action] += 1
+    action_idx = np.argmax(action[:, :-2])
+    self.progress_data[-1]["actions_taken"][action_idx] += 1
     if obs.last():
       game_result = obs.reward
       self.policy.save(self.model_path)

@@ -8,54 +8,62 @@ from torchsummary import summary
 
 class Critic(nn.Module):
 
-  def __init__(self, img_state_channel_dim, vect_state_len, action_dim):
+  def __init__(self,
+               img_state_dim,
+               vect_state_len,
+               action_dim,
+               device):
     """
     Create the critic network of the TD3 Algorithm.
 
-    :param img_state_channel_dim: Int
-      Number of channels of the image input tensor.
+    :param img_state_dim: Tuple
+      Number of channels of the image input tensor at last place (h,w,c).
     :param vect_state_len: Int
       Size of th semantic state input vector.
     :param action_dim: Int
       Shape of the specific executed action.
       E.g. for a combination of a 10-Action 1-hot encoding + 2 Regression
-      outputs, the action_shape would be of size 3.
+      outputs, the action_shape would be of size 12.
     """
     super(Critic, self).__init__()
+    self.device = device
 
-    input_shape = (3, 7, 7)
-    conv_output_dim = 16 * 2 * 2
+    conv_output_dim = 32 * 4 * 4
 
     self.conv_modules_q1 = nn.Sequential(
-      nn.Conv2d(img_state_channel_dim, 32, kernel_size=5, stride=1, padding=0),
+      nn.Conv2d(img_state_dim[-1], 32, kernel_size=5, stride=1, padding=0),
       nn.ReLU(),
-      nn.MaxPool2d(kernel_size=5),
+      nn.MaxPool2d(kernel_size=3),
+      nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=0),
+      nn.ReLU(),
+      nn.MaxPool2d(kernel_size=2),
       nn.Conv2d(32, 32, kernel_size=2, stride=1, padding=0),
       nn.ReLU(),
-      nn.MaxPool2d(kernel_size=5),
-      nn.Conv2d(32, 16, kernel_size=2, stride=1, padding=0),
-      nn.ReLU(),
-      nn.MaxPool2d(kernel_size=5))
-    print(f"Q-Network Conv Input Shape {input_shape}, "
-          f"Conv Output: {conv_output_dim}")
-    summary(self.conv_modules, input_shape, device="cpu")
+      nn.MaxPool2d(kernel_size=2))
+
+    input_shape = img_state_dim[2], img_state_dim[0], img_state_dim[1]
+    print(f"\nCritic:"
+          f"\tQ-Network Conv Input Shape {input_shape}, "
+          f"\tConv Output: {conv_output_dim}")
+    summary(self.conv_modules_q1, input_shape, device="cpu")
 
     self.dense_modules_q1 = nn.Sequential(
-      nn.Linear(conv_output_dim + vect_state_len + action_dim, 128),
+      nn.Linear(conv_output_dim + vect_state_len[0] + action_dim, 256),
       nn.ReLU(),
       nn.Linear(256, 256),
       nn.ReLU(),
       nn.Linear(256, 128),
       nn.ReLU(),
       nn.Linear(128, 1))
-    print(f"Actor Dense Input Shape {input_shape}, "
-          f"Conv Output: {conv_output_dim}")
-    summary(self.dense_modules, conv_output_dim + vect_state_len, device="cpu")
+    print(f"\n\tActor Dense Input Shape {input_shape}, "
+          f"\tConv Output: {conv_output_dim}")
+    summary(self.dense_modules_q1,
+            (conv_output_dim + vect_state_len[0] + action_dim,),
+            device="cpu")
     logging.info("Actor initialized")
 
     self.conv_modules_q2 = copy.deepcopy(self.conv_modules_q1)
     self.dense_modules_q2 = copy.deepcopy(self.dense_modules_q1)
-
 
   def forward(self, x):
     """

@@ -28,11 +28,11 @@ class SimpleBuffer:
 
   def sample(self, batch_size):
     batch = np.asarray(random.sample(self.buffer, batch_size))
-    state_pix = np.vstack(batch[:, 0])
+    state_pix = np.stack(batch[:, 0])
     state_sem = np.vstack(batch[:, 1])
     actions = np.vstack(batch[:, 2])
     rewards = np.vstack(batch[:, 3])
-    next_state_pix = np.vstack(batch[:, 4])
+    next_state_pix = np.stack(batch[:, 4])
     next_state_sem = np.vstack(batch[:, 5])
     dones = np.vstack(batch[:, 6])
     state_pix = torch.from_numpy(state_pix).float().to(device=self.device)
@@ -45,7 +45,7 @@ class SimpleBuffer:
       device=self.device)
     states = (state_pix, state_sem)
     next_states = (next_state_pix, next_state_sem)
-    return states, actions, rewards, next_states, dones
+    return states, actions, next_states, rewards, dones
 
   def __len__(self):
     return len(self.buffer)

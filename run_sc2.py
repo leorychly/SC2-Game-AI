@@ -18,8 +18,8 @@ def main(unused_argv):
   # AgentSmithBeta()
 
   screen_dim = (64, 64)
-  #player_1 = AgentSmithBeta(screen_dim)
-  player_1 = AgentSmithAlpha()
+  #player_1 = AgentSmithAlpha()
+  player_1 = AgentSmithBeta(screen_dim)
   player_2 = RandomAgent()
 
   players = [player_1, player_2]
@@ -45,10 +45,9 @@ def main(unused_argv):
       random_seed=None,
       visualize=False) as env:
       run_loop.run_loop(players, env, max_episodes=10000)
-  except:
-    time.sleep(20)
-  #except KeyboardInterrupt:
-  #  pass
+  except KeyboardInterrupt:
+    pass
+
 
 if __name__ == "__main__":
   app.run(main)

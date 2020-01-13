@@ -17,7 +17,7 @@ class HybridObserver(BaseObserver):
   def __init__(self):
     super(HybridObserver, self).__init__()
     self.dim_pix = (64, 64, 5)
-    self.dim_sem = (312,)
+    self.dim_sem = (398,)
     self.interface = Interface()
     self.actions = ActionsCategorical()
 
@@ -31,7 +31,8 @@ class HybridObserver(BaseObserver):
     semantic_state = np.concatenate((self._unit_state(obs),
                                      self._custom_state(obs),
                                      self._player_state(obs)))
-    print(f"Semantic state space size: {semantic_state.shape} (Set in NN)")
+    assert semantic_state.size == self.dim_sem[0]
+    assert pixel_state.size == self.dim_pix[0] * self.dim_pix[1] * self.dim_pix[2]
     return pixel_state, semantic_state
 
   def _pixel_state(self, obs):
@@ -105,8 +106,7 @@ class HybridObserver(BaseObserver):
     :param obs:
     :return:
     """
-    state = np.concatenate(
-      obs.observation["player"][:9])
+    state = obs.observation["player"][:9]
     return state
 
   def _unit_state(self, obs):
@@ -126,7 +126,7 @@ class HybridObserver(BaseObserver):
       obs.observation["raw_units"][13],
       obs.observation["raw_units"][17]
     ))
-
+    return state
 
   def _custom_state(self, obs):
     scvs, idle_scvs, command_centers, completed_command_centers, \
@@ -168,6 +168,5 @@ class HybridObserver(BaseObserver):
             len(enemy_barrackses),
             len(enemy_completed_barrackses),
             len(enemy_marines))
-    assert len(state) == self.state_dim
     return state
 
