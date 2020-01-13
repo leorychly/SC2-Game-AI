@@ -14,7 +14,7 @@ from src.agents.agent_smith_alpha.plotting import plot_training_progress
 # TODO: log_progress() add avrg reward score as third row in the plot
 
 
-class DQNAgent():
+class DQNAgent:
   """Normal and Clipped Double Deep Q-Learning Agent."""
 
   def __init__(self,
