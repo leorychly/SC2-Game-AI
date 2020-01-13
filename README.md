@@ -32,7 +32,8 @@ So different state observer creating different state representations will be imp
 
 #### Agent Decision Making
 * AgentSmith: Random / Scripted Agent
-* AgentSmithAlpha: Double Deep Q-Learning Agent with restricted action space
+* AgentSmithAlpha: Double Deep Q-Learning Agent with simple categorical actions.
+* AgentSmithBeta: TD3 Agent with both categorical and continuous actions.
 * ... more to come
 
 ---
