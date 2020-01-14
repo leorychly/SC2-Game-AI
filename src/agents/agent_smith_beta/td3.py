@@ -63,8 +63,8 @@ class TD3Agent:
 
     self.min_action_limit = np.zeros(sum(action_dim))
     self.max_action_limit = np.ones(sum(action_dim))
-    policy_noise = policy_noise * self.max_action_limit
-    noise_clip = noise_clip * self.max_action_limit
+    policy_noise *= min(self.max_action_limit)
+    noise_clip *= min(self.max_action_limit)
 
     self.actor = td3_actor.Actor(img_state_dim=state_dim[0],
                                  vect_state_len=state_dim[1],
@@ -103,7 +103,6 @@ class TD3Agent:
     self.total_reward = []
     self.reward_history = []
 
-
   def __call__(self, state):
     return self.plan(state)
 
@@ -115,7 +114,8 @@ class TD3Agent:
       noise = np.random.normal(loc=0,
                                scale=scale * self.expl_noise,
                                size=sum(self.action_dim))
-    state = np.expand_dims(state, axis=0)
+    state = (np.expand_dims(state[0], axis=0),
+             np.expand_dims(state[1], axis=0))
     action = self.actor(state)  # TODO: Output always at limits?
     action = action.detach().cpu().numpy() + noise
     action = action.clip(self.min_action_limit,
@@ -153,7 +153,7 @@ class TD3Agent:
       noise = (torch.randn_like(actions) * self.policy_noise).clamp(
         -self.noise_clip, self.noise_clip)
       next_action = (self.actor_target(next_states) + noise).clamp(
-        -self.min_action_limit, self.max_action_limit)
+        max(self.min_action_limit), min(self.max_action_limit))
 
       # Compute target Q value
       target_q1, target_q2 = self.critic_target((next_states, next_action))
@@ -175,7 +175,7 @@ class TD3Agent:
     # TODO: Check if regression and classification output possible with
     # TODO: ...TD3 policy update.
     # Delayed policy updates
-    if self.total_iter % self.policy_update_freq == 0:
+    if self.global_step % self.policy_update_freq == 0:
 
       # Compute actor losse
       actor_loss = -self.critic.Q1((states, self.actor(states))).mean()

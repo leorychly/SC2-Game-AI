@@ -84,20 +84,22 @@ class Critic(nn.Module):
       Both network outputs.
     """
     (x_img_1, x_data_1), action_1 = x
-    x_img_1 = x_img_1.permute(0, 3, 1, 2)
+    #x_img_1 = x_img_1.permute(0, 3, 1, 2)
     x_img_2 = copy.deepcopy(x_img_1)
     x_data_2 = copy.deepcopy(x_data_1)
     action_2 = copy.deepcopy(action_1)
+
     x_img_1 = self.conv_modules_q1(x_img_1)
     x1 = torch.cat((x_img_1.reshape(x_img_1.size(0), -1),
                    x_data_1.reshape(x_img_1.size(0), -1),
                    action_1), dim=1)
-    x1 = self.dense_modules(x1)
-    x_img_2 = self.conv_modules_q1(x_img_2)
+    x1 = self.dense_modules_q1(x1)
+
+    x_img_2 = self.conv_modules_q2(x_img_2)
     x2 = torch.cat((x_img_2.reshape(x_img_2.size(0), -1),
                     x_data_2.reshape(x_img_2.size(0), -1),
                     action_2), dim=1)
-    x2 = self.dense_modules(x2)
+    x2 = self.dense_modules_q2(x2)
     return x1, x2
 
   def Q1(self, x):
@@ -111,9 +113,14 @@ class Critic(nn.Module):
       Network output.
     """
     (x_img, x_data), action = x
-    x = torch.cat((x_img.reshape(x_img.size(0), -1),
-                   x_data.reshape(x_img.size(0), -1),
-                   action), dim=1)
-    for layer in self.module_list_q1:
-      x = layer(x)
-    return x
+    #x = torch.cat((x_img.reshape(x_img.size(0), -1),
+    #               x_data.reshape(x_img.size(0), -1),
+    #               action), dim=1)
+    #for layer in self.module_list_q1:
+    #  x = layer(x)
+    x_img = self.conv_modules_q1(x_img)
+    x_out = torch.cat((x_img.reshape(x_img.size(0), -1),
+                    x_data.reshape(x_img.size(0), -1),
+                    action), dim=1)
+    x_out = self.dense_modules_q1(x_out)
+    return x_out

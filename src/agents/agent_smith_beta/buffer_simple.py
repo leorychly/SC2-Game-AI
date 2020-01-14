@@ -37,7 +37,7 @@ class SimpleBuffer:
     dones = np.vstack(batch[:, 6])
     state_pix = torch.from_numpy(state_pix).float().to(device=self.device)
     state_sem = torch.from_numpy(state_sem).float().to(device=self.device)
-    actions = torch.from_numpy(actions).long().to(device=self.device)
+    actions = torch.from_numpy(actions).float().to(device=self.device)
     rewards = torch.from_numpy(rewards).float().to(device=self.device)
     next_state_pix = torch.from_numpy(next_state_pix).float().to(device=self.device)
     next_state_sem = torch.from_numpy(next_state_sem).float().to(device=self.device)

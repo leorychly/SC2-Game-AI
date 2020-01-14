@@ -80,15 +80,18 @@ class AgentSmithBeta(Agent):
   def step(self, obs):
     self.game_step += 1
     state = self.observer.get_state(obs)
+    assert isinstance(state, tuple)
     state_pix, state_sem = state
     reward = self.reward_function(obs)
     done = obs.last()
     if obs.first():
       self._first_step(obs)
     if obs.last():
-      pysc2_action = self._last_step(obs, state, reward, done)
+      pysc2_action = self._last_step(
+        obs=obs, state=state, reward=reward, done=done)
     else:
-      pysc2_action = self._step(obs, state, reward, done)
+      pysc2_action = self._step(
+        obs=obs, state=state, reward=reward, done=done)
     return pysc2_action
 
   def _step(self, obs, state, reward, done):
@@ -135,7 +138,7 @@ class AgentSmithBeta(Agent):
 
   def choose_action(self, state):
     """Return 1-hot action index and X,Y cursor position."""
-    state = np.asarray(state)
+    #state = np.asarray(state)
     policy_output = self.policy(state)
     action_idx = np.argmax(policy_output[:, :-2])
     x = policy_output[:, -2]

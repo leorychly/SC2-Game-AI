@@ -68,24 +68,29 @@ class Actor(nn.Module):
     to (B, C, H, W) and (B, N)
 
     :param x:
-      Tuple of (B, Image, Data)
+      Tuple of (Image, Data) as ndarray or torch.tensor
+      - Image input data of shape (B x C x H x W) with
             B: batch size
-        Image input data of shape (C x H x W) with
             C: number of channels
             H: hight of the input data
             W  width of the input data
-        Data input data as a vector of shape (N)
+      - Data input data as a vector of shape (B, N)
+            B: batch size
             N: array length
     :return x:
       Network output.
     """
-    x_img = np.stack(x[:, 0])
-    x_data = np.stack(x[:, 1])
+    #x_img = np.stack(x[0])
+    #x_data = np.stack(x[1])
 
-    x_img = torch.from_numpy(x_img).float().to(device=self.device)
-    #x_img = x_img.permute(0, 3, 1, 2)
+    if isinstance(x[0], np.ndarray) and isinstance(x[1], np.ndarray):
+      x_img = torch.from_numpy(x[0]).float().to(device=self.device)
+      #x_img = x_img.permute(0, 3, 1, 2)
+      x_data = torch.from_numpy(x[1]).float().to(device=self.device)
+    else:
+      x_img = x[0]
+      x_data = x[1]
 
-    x_data = torch.from_numpy(x_data).float().to(device=self.device)
     x_img = self.conv_modules(x_img)
     x = torch.cat((x_img.reshape(x_img.size(0), -1),
                    x_data.reshape(x_img.size(0), -1)), dim=1)
