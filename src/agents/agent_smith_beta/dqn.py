@@ -8,8 +8,7 @@ import torch.optim as optim
 
 from src.agents.agent_smith_beta.qnet_conv import ConvQNet
 from src.agents.agent_smith_beta.buffer_simple import SimpleBuffer
-from src.agents.agent_smith_alpha.buffer_prioritized import PrioritizedBuffer
-from src.agents.agent_smith_alpha.plotting import plot_training_progress
+from src.utils.plotting import plot_training_progress
 
 # TODO: log_progress() add avrg reward score as third row in the plot
 

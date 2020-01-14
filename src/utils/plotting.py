@@ -7,9 +7,9 @@ def plot_progress(data, save_dir):
   game_results = [data[i]["game_result"] for i in range(len(data))]
   game_results = [0 if x is None else x for x in game_results] # TODO: Check why reward can be None
 
-  win_rates = [game_results[:i].count(1) / (i + 1) for i in range(n)]
-  draw_rates = [game_results[:i].count(0) / (i + 1) for i in range(n)]
-  loss_rates = [game_results[:i].count(-1) / (i + 1) for i in range(n)]
+  win_rates = [game_results[:i + 1].count(1) / (i + 1) for i in range(n)]
+  draw_rates = [game_results[:i + 1].count(0) / (i + 1) for i in range(n)]
+  loss_rates = [game_results[:i + 1].count(-1) / (i + 1) for i in range(n)]
   win_rates.extend([game_results[i:i + n].count(1) / n for i in range(len(game_results) - n)])
   draw_rates.extend([game_results[i:i + n].count(0) / n for i in range(len(game_results) - n)])
   loss_rates.extend([game_results[i:i + n].count(-1) / n for i in range(len(game_results) - n)])

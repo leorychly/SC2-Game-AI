@@ -11,7 +11,8 @@ from src.observer.hybrid_observer import HybridObserver
 
 from src.agents import reward_fn
 from src.agents.agent_smith_beta.td3 import TD3Agent
-from src.agents.agent_smith_alpha import plotting
+from src.utils import plotting
+
 
 # TODO:
 # add avrg reward per game

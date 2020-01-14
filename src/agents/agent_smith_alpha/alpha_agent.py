@@ -10,7 +10,8 @@ from src.pysc2_actions.categorical_actions import ActionsCategorical
 from src.observer.crafted_observer import CraftedObserver
 from src.agents import reward_fn
 from src.agents.agent_smith_alpha.dqn import DQNAgent
-from src.agents.agent_smith_alpha import plotting
+from src.utils import plotting
+
 
 # TODO: add avrg reward per game
 # TODO: change all file paths to pathlib2.Paths
