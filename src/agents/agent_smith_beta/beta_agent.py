@@ -125,8 +125,8 @@ class AgentSmithBeta(Agent):
                      reward=reward,
                      next_state=state,
                      done=done)
-    action = np.zeros(len(self.pysc2_actions) + 2)
-    action[0] = 1  # Do Nothing action at index 0
+    action = np.expand_dims(np.zeros(len(self.pysc2_actions) + 2), axis=0)
+    action[0, 0] = 1  # Do Nothing action at index 0
     self.log_results(obs, action)
     pysc2_action = self.pysc2_actions.do_nothing()
     world_state = WorldState(obs=obs, base_top_left=self.base_top_left)
