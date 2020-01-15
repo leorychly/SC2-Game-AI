@@ -1,9 +1,3 @@
-import random
-import numpy as np
-from pysc2.lib import actions, features, units
-from src.pysc2_interface.interface import Interface
-
-
 """"
 Actions to adapt to use numeric inputs as x,y coords, number of units to train:
       #action_fn_categorical.build_supply_depot,
@@ -11,6 +5,9 @@ Actions to adapt to use numeric inputs as x,y coords, number of units to train:
       #action_fn_categorical.train_marine,
       #action_fn_categorical.attack
 """
+import numpy as np
+from pysc2.lib import actions, features, units
+from src.pysc2_interface.interface import Interface
 
 
 def build_supply_depot(world_state, max_count=2):

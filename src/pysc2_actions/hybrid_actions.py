@@ -1,8 +1,7 @@
 import random
-import numpy as np
 from src.pysc2_interface.interface import Interface
 from src.pysc2_actions import action_fn_categorical
-from src.pysc2_actions import action_fn_advanced
+from src.pysc2_actions import action_fn_hybrid
 
 
 class ActionsHybrid(object):
@@ -15,10 +14,10 @@ class ActionsHybrid(object):
     self._actions = [
       action_fn_categorical.do_nothing,
       action_fn_categorical.harvest_minerals,
-      action_fn_advanced.build_supply_depot,
-      action_fn_advanced.build_barracks,
-      action_fn_advanced.train_marine,
-      action_fn_advanced.attack
+      action_fn_hybrid.build_supply_depot,
+      action_fn_hybrid.build_barracks,
+      action_fn_hybrid.train_marine,
+      action_fn_hybrid.attack
     ]
 #    assert len(self._actions) == self.get_limits().shape[0]
 

@@ -14,7 +14,7 @@ def plot_progress(data, save_dir):
   draw_rates.extend([game_results[i:i + n].count(0) / n for i in range(len(game_results) - n)])
   loss_rates.extend([game_results[i:i + n].count(-1) / n for i in range(len(game_results) - n)])
 
-  fig1 = plt.figure(constrained_layout=True)
+  fig1 = plt.figure(constrained_layout=True, figsize=(20, 8))
   gs1 = fig1.add_gridspec(4, 4)
   f1_ax1 = fig1.add_subplot(gs1[:3, :])
   f1_ax1.set_title("Win Rate")
