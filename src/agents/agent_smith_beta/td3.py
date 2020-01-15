@@ -7,6 +7,7 @@ from absl import logging
 from gym import wrappers
 import torch
 import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
 
 from src.agents.agent_smith_beta import td3_actor, td3_critic, buffer_simple
 
@@ -56,10 +57,14 @@ class TD3Agent:
     :param policy_update_freq: Int
     :param unused_kwargs: Dict
     """
-    self.name = "Fred"
     self.save_path = Path("./results")
     self.train_process_data_fname = "td3_training.npy"
     self.train_process_plot_fname = "td3_training.png"
+
+    tensorboard_dir = self.save_path / "tensorboard_log"
+    tensorboard_dir.mkdir(parents=True, exist_ok=True)
+    self.writer = SummaryWriter(
+      log_dir=tensorboard_dir.absolute().as_posix())
 
     self.min_action_limit = np.zeros(sum(action_dim))
     self.max_action_limit = np.ones(sum(action_dim))
@@ -123,6 +128,8 @@ class TD3Agent:
     return action
 
   def step(self, state, action, next_state, reward, done):
+    #self.writer.add_scalar("action", action, self.global_step)
+    self.writer.add_scalar("reward", reward, self.global_step)
     self.replay_buffer.push(state_pix=state[0],
                             state_sem=state[1],
                             action=action,
@@ -191,6 +198,9 @@ class TD3Agent:
 
       for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
         target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+
+      self.writer.add_scalar("critic_loss", critic_loss, self.global_step)
+      self.writer.add_scalar("actor_loss", actor_loss, self.global_step)
 
   def save(self, file_path):
     file_path.mkdir(parents=True, exist_ok=True)
