@@ -16,6 +16,6 @@ class RandomAgent(Agent):
       super(RandomAgent, self).step(obs)
       self.actions.set_base_pos(self.base_top_left)
     action_info = ActionData(obs=obs, base_top_left=self.base_top_left)
-    action = self.actions.sample()(action_info)
+    action = self.actions.sample(weak=True)(action_info)
     return action
 

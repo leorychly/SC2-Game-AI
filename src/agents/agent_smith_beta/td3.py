@@ -21,8 +21,8 @@ class TD3Agent:
     device,
     actor_lr=3e-4,
     critic_lr=3e-4,
-    batch_size=64,
-    buffer_size=10000,
+    batch_size=256,
+    buffer_size=int(1e6),
     discount=0.99,
     tau=0.005,
     policy_noise=0.2,
@@ -30,6 +30,7 @@ class TD3Agent:
     noise_clip=0.5,
     training_interval=2,
     policy_update_freq=2,
+    n_init_rand_steps=1000,
     **unused_kwargs):
     """
     Initialize the TD3 Agent.
@@ -57,6 +58,7 @@ class TD3Agent:
     :param policy_update_freq: Int
     :param unused_kwargs: Dict
     """
+    self.n_init_rand_steps = n_init_rand_steps
     self.save_path = Path("./results")
     self.train_process_data_fname = "td3_training.npy"
     self.train_process_plot_fname = "td3_training.png"
@@ -112,17 +114,20 @@ class TD3Agent:
     return self.plan(state)
 
   def plan(self, state, exploration_noise_on=True):
-    noise = np.zeros(sum(self.action_dim))
-    if exploration_noise_on:
-      scale = np.max([abs(self.min_action_limit),
-                      abs(self.max_action_limit)], axis=0)
-      noise = np.random.normal(loc=0,
-                               scale=scale * self.expl_noise,
-                               size=sum(self.action_dim))
-    state = (np.expand_dims(state[0], axis=0),
-             np.expand_dims(state[1], axis=0))
-    action = self.actor(state)  # TODO: Output always at limits?
-    action = action.detach().cpu().numpy() + noise
+    if self.global_step < self.n_init_rand_steps:
+      action = np.random.rand(sum(self.action_dim))  # actions between [0, 1 )
+    else:
+      noise = np.zeros(sum(self.action_dim))
+      if exploration_noise_on:
+        scale = np.max([abs(self.min_action_limit),
+                        abs(self.max_action_limit)], axis=0)
+        noise = np.random.normal(loc=0,
+                                 scale=scale * self.expl_noise,
+                                 size=sum(self.action_dim))
+      state = (np.expand_dims(state[0], axis=0),
+               np.expand_dims(state[1], axis=0))
+      action = self.actor(state)  # TODO: Output always at limits?
+      action = action.detach().cpu().numpy() + noise
     action = action.clip(self.min_action_limit,
                          self.max_action_limit)
     return action
@@ -153,17 +158,20 @@ class TD3Agent:
     self.global_step += 1
 
   def _optimize(self, batch):
+    """
+    Optimization taken from the authors of th TD3 paper:
+    https://github.com/sfujim/TD3/blob/master/TD3.py
+    """
     states, actions, next_states, rewards, dones = batch
-    # TODO: check if "done" means done or notDone
 
     with torch.no_grad():
       noise = (torch.randn_like(actions) * self.policy_noise).clamp(
         -self.noise_clip, self.noise_clip)
-      next_action = (self.actor_target(next_states) + noise).clamp(
+      next_actions = (self.actor_target(next_states) + noise).clamp(
         max(self.min_action_limit), min(self.max_action_limit))
 
       # Compute target Q value
-      target_q1, target_q2 = self.critic_target((next_states, next_action))
+      target_q1, target_q2 = self.critic_target((next_states, next_actions))
       target_q = torch.min(target_q1, target_q2)
       target_q = rewards + (1 - dones) * self.discount * target_q
 
@@ -181,6 +189,7 @@ class TD3Agent:
     # TODO before testing: (!!!)
     # TODO: Check if regression and classification output possible with
     # TODO: ...TD3 policy update.
+
     # Delayed policy updates
     if self.global_step % self.policy_update_freq == 0:
 
@@ -234,3 +243,6 @@ class TD3Agent:
       (self.save_path / self.train_process_plot_fname).absolute().as_posix())
     plt.close()
     np.save(self.train_process_data_fname, self.reward_history)
+
+  def add_to_tensorboard(self, var, name):
+    self.writer.add_scalar(name, var, self.global_step)
