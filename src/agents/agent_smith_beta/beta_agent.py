@@ -3,7 +3,7 @@ import numpy as np
 from pathlib2 import Path
 from absl import logging
 
-from src.commons import WorldState
+from src.commons import ActionData
 from src.agents.base_agent import Agent
 from src.pysc2_interface.interface import Interface
 from src.pysc2_actions.hybrid_actions import ActionsHybrid
@@ -33,7 +33,7 @@ class AgentSmithBeta(Agent):
     self.interface = Interface()
     self.pysc2_actions = ActionsHybrid()
     self.observer = HybridObserver()
-    self.reward_fn = reward_fn.SparseRewardFn()
+    self.reward_fn = reward_fn.ScoreRewardFn()
 
     self.prev_state = None
     self.prev_action = None
@@ -107,12 +107,12 @@ class AgentSmithBeta(Agent):
     self.prev_state = state
     self.prev_action = policy_output
 
-    world_state = WorldState(obs=obs,
-                             base_top_left=self.base_top_left,
+    action_args = ActionData(obs=obs,
+                             #base_top_left=self.base_top_left,
                              x=x[0],
                              y=y[0])
     pysc2_action = self.pysc2_actions(action_idx)
-    return pysc2_action(world_state)
+    return pysc2_action(action_args)
 
   def _first_step(self, obs):
     super(AgentSmithBeta, self).step(obs)
@@ -130,8 +130,9 @@ class AgentSmithBeta(Agent):
     action[0, 0] = 1  # Do Nothing action at index 0
     self.log_results(obs, action)
     pysc2_action = self.pysc2_actions.do_nothing()
-    world_state = WorldState(obs=obs, base_top_left=self.base_top_left)
-    return pysc2_action(world_state)
+    action_args = ActionData(obs=obs,
+                             base_top_left=self.base_top_left)
+    return pysc2_action(action_args)
 
   def is_same_state(self, s1, s2):
     #return True if np.allclose(s1, s2, rtol=0.1) else False

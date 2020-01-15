@@ -3,7 +3,7 @@ import numpy as np
 from pathlib2 import Path
 from absl import logging
 
-from src.commons import WorldState
+from src.commons import ActionData
 from src.agents.base_agent import Agent
 from src.pysc2_interface.interface import Interface
 from src.pysc2_actions.categorical_actions import ActionsCategorical
@@ -91,9 +91,9 @@ class AgentSmithAlpha(Agent):
     self.prev_state = state
     self.prev_action = action
 
-    world_state = WorldState(obs=obs, base_top_left=self.base_top_left)
+    action_args = ActionData(obs=obs, base_top_left=self.base_top_left)
     pysc2_action = self.actions(action)
-    return pysc2_action(world_state)
+    return pysc2_action(action_args)
 
   def _first_step(self, obs):
     super(AgentSmithAlpha, self).step(obs)
@@ -110,8 +110,9 @@ class AgentSmithAlpha(Agent):
     action = 0
     self.log_results(obs, action)
     pysc2_action = self.actions.do_nothing()
-    world_state = WorldState(obs=obs, base_top_left=self.base_top_left)
-    return pysc2_action(world_state)
+    action_args = ActionData(obs=obs,
+                             base_top_left=self.base_top_left)
+    return pysc2_action(action_args)
 
   def is_same_state(self, s1, s2):
     #return True if np.allclose(s1, s2, rtol=0.1) else False
