@@ -1,6 +1,6 @@
 import random
 from src.agents.base_agent import Agent
-from src.commons import WorldState
+from src.commons import ActionData
 from src.pysc2_actions.categorical_actions import ActionsCategorical
 
 
@@ -15,7 +15,7 @@ class RandomAgent(Agent):
     if obs.first():
       super(RandomAgent, self).step(obs)
       self.actions.set_base_pos(self.base_top_left)
-    world_state = WorldState(obs=obs, base_top_left=self.base_top_left)
-    action = self.actions.sample()(world_state)
+    action_info = ActionData(obs=obs, base_top_left=self.base_top_left)
+    action = self.actions.sample()(action_info)
     return action
 
