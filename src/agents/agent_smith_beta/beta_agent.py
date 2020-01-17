@@ -82,7 +82,7 @@ class AgentSmithBeta(Agent):
     self.game_step += 1
     state = self.observer.get_state(obs)
     assert isinstance(state, tuple)
-    state_pix, state_sem = state
+    #state_pix, state_sem = state
     reward = self.reward_function(obs)
     done = obs.last()
     if obs.first():
@@ -96,22 +96,24 @@ class AgentSmithBeta(Agent):
     return pysc2_action
 
   def _step(self, obs, state, reward, done):
-    action_idx, x, y, policy_output = self.choose_action(state)
+    action = self.choose_action(state)
+    x = action[-2]
+    y = action[-1]
     if self.prev_action is not None:
       self.policy.step(state=self.prev_state,
                        action=self.prev_action,
                        reward=reward,
                        next_state=state,
                        done=done)
-    self.log_results(obs, policy_output)
+    self.log_results(obs, action)
     self.prev_state = state
-    self.prev_action = policy_output
+    self.prev_action = action
 
     action_args = ActionData(obs=obs,
                              #base_top_left=self.base_top_left,
-                             x=x[0],
-                             y=y[0])
-    pysc2_action = self.pysc2_actions(action_idx)
+                             x=x,
+                             y=y)
+    pysc2_action = self.pysc2_actions(np.argmax(action[:-2]))
     return pysc2_action(action_args)
 
   def _first_step(self, obs):
@@ -140,25 +142,31 @@ class AgentSmithBeta(Agent):
 
   def choose_action(self, state):
     """Return 1-hot action index and X,Y cursor position."""
-    #state = np.asarray(state)
     policy_output = self.policy(state)
-    action_idx = np.argmax(policy_output[:, :-2])
-    x = policy_output[:, -2]
-    y = policy_output[:, -1]
+    action_idx = np.argmax(policy_output[:-2])
+    x = policy_output[-2]
+    y = policy_output[-1]
     assert 0 <= x <= 1
     assert 0 <= y <= 1
     x *= self.game_screen_resolution[0]
     y *= self.game_screen_resolution[1]
-    return action_idx, x, y, policy_output
+    categorical_action = self._as_one_hot(action_idx, len(policy_output) - 2)
+    action = np.concatenate((categorical_action, np.array([x, y])))
+    return action
 
-  def choose_action_custom(self, state):
-    if np.random.random() < 0.2:
-      a_idx = np.random.randint(len(self.pysc2_actions) - 2)
-    elif np.random.random() < 0.2:
-      a_idx = 5  # attack
-    else:
-      a_idx = 4  # build marine
-    return a_idx
+  def _as_one_hot(self, idx, length):
+    one_hot_vect = np.zeros(length)
+    one_hot_vect[idx] += 1
+    return one_hot_vect
+
+  #def choose_action_custom(self, state):
+  #  if np.random.random() < 0.2:
+  #    a_idx = np.random.randint(len(self.pysc2_actions) - 2)
+  #  elif np.random.random() < 0.2:
+  #    a_idx = 5  # attack
+  #  else:
+  #    a_idx = 4  # build marine
+  #  return a_idx
 
   def reward_function(self, obs):
     reward = self.reward_fn(obs)

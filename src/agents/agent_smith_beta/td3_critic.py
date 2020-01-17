@@ -31,13 +31,16 @@ class Critic(nn.Module):
     conv_output_dim = 32 * 4 * 4
 
     self.conv_modules_q1 = nn.Sequential(
-      nn.Conv2d(img_state_dim[-1], 32, kernel_size=5, stride=1, padding=0),
+      nn.Conv2d(img_state_dim[-1], 64, kernel_size=5, stride=1, padding=0),
+      nn.BatchNorm2d(64),
       nn.ReLU(),
       nn.MaxPool2d(kernel_size=3),
-      nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=0),
+      nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
+      nn.BatchNorm2d(64),
       nn.ReLU(),
       nn.MaxPool2d(kernel_size=2),
-      nn.Conv2d(32, 32, kernel_size=2, stride=1, padding=0),
+      nn.Conv2d(64, 32, kernel_size=2, stride=1, padding=0),
+      nn.BatchNorm2d(32),
       nn.ReLU(),
       nn.MaxPool2d(kernel_size=2))
 

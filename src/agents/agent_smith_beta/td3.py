@@ -19,9 +19,9 @@ class TD3Agent:
     state_dim,
     action_dim,
     device,
-    actor_lr=3e-4,
-    critic_lr=3e-4,
-    batch_size=256,
+    actor_lr=1e-4,
+    critic_lr=1e-4,
+    batch_size=128,
     buffer_size=int(1e6),
     discount=0.99,
     tau=0.005,
@@ -30,7 +30,7 @@ class TD3Agent:
     noise_clip=0.5,
     training_interval=2,
     policy_update_freq=2,
-    n_init_rand_steps=1000,
+    n_init_rand_steps=0,
     **unused_kwargs):
     """
     Initialize the TD3 Agent.
@@ -75,7 +75,7 @@ class TD3Agent:
 
     self.actor = td3_actor.Actor(img_state_dim=state_dim[0],
                                  vect_state_len=state_dim[1],
-                                 action_space_dim=sum(action_dim),
+                                 action_space=action_dim,
                                  device=device)
     self.actor = self.actor.to(device)
     self.actor_target = copy.deepcopy(self.actor)
@@ -115,7 +115,7 @@ class TD3Agent:
 
   def plan(self, state, exploration_noise_on=True):
     if self.global_step < self.n_init_rand_steps:
-      action = np.random.rand(sum(self.action_dim))  # actions between [0, 1 )
+      action_logits = np.random.rand(sum(self.action_dim))  # actions between [0, 1 )
     else:
       noise = np.zeros(sum(self.action_dim))
       if exploration_noise_on:
@@ -126,11 +126,13 @@ class TD3Agent:
                                  size=sum(self.action_dim))
       state = (np.expand_dims(state[0], axis=0),
                np.expand_dims(state[1], axis=0))
-      action = self.actor(state)  # TODO: Output always at limits?
-      action = action.detach().cpu().numpy() + noise
-    action = action.clip(self.min_action_limit,
-                         self.max_action_limit)
-    return action
+      action_logits = self.actor(state)  # TODO: Output always at limits?
+      action_logits = action_logits.detach().cpu().numpy() + noise
+    action_logits = action_logits.flatten().clip(self.min_action_limit,
+                                                 self.max_action_limit)
+    if min(action_logits) < 0:
+      pass
+    return action_logits
 
   def step(self, state, action, next_state, reward, done):
     #self.writer.add_scalar("action", action, self.global_step)
