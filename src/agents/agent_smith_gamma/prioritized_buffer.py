@@ -5,7 +5,6 @@ import torch
 
 
 Transition = namedtuple('Transition', ('timestep', 'state', 'action', 'reward', 'nonterminal'))
-blank_trans = Transition(0, torch.zeros(96, 96, dtype=torch.uint8), None, 0, False)
 
 
 # Segment tree data structure where parent node values are sum/max of children node values
@@ -67,12 +66,29 @@ class ReplayMemory:
 
   def __init__(self,
                device,
+               state_shape,
                history_length,
                discount,
                multi_step,
                priority_weight,
                priority_exponent,
                capacity):
+    """
+
+    Args:
+      device (String): "cpu" or "cuda"
+      state_shape (Tuple): (W, H, C)
+      history_length (Int): Number of frames to use.
+      discount:
+      multi_step:
+      priority_weight:
+      priority_exponent:
+      capacity:
+    """
+    self.blank_trans = Transition(
+      0, torch.zeros(state_shape[0], state_shape[1], dtype=torch.uint8),
+      None, 0, False)
+
     self.device = device
     self.capacity = capacity
     self.history = history_length
@@ -103,14 +119,14 @@ class ReplayMemory:
     transition[self.history - 1] = self.transitions.get(idx)
     for t in range(self.history - 2, -1, -1):  # e.g. 2 1 0
       if transition[t + 1].timestep == 0:
-        transition[t] = blank_trans  # If future frame has timestep 0
+        transition[t] = self.blank_trans  # If future frame has timestep 0
       else:
         transition[t] = self.transitions.get(idx - self.history + 1 + t)
     for t in range(self.history, self.history + self.n):  # e.g. 4 5 6
       if transition[t - 1].nonterminal:
         transition[t] = self.transitions.get(idx - self.history + 1 + t)
       else:
-        transition[t] = blank_trans  # If prev (next) frame is terminal
+        transition[t] = self.blank_trans  # If prev (next) frame is terminal
     return transition
 
   def _get_sample_from_segment(self, segment, i):
@@ -168,7 +184,7 @@ class ReplayMemory:
     prev_timestep = self.transitions.data[self.current_idx].timestep
     for t in reversed(range(self.history - 1)):
       if prev_timestep == 0:
-        state_stack[t] = blank_trans.state  # If future frame has timestep 0
+        state_stack[t] = self.blank_trans.state  # If future frame has timestep 0
       else:
         state_stack[t] = self.transitions.data[self.current_idx + t - self.history + 1].state
         prev_timestep -= 1

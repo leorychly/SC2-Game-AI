@@ -12,6 +12,7 @@ from src.agents.agent_smith_gamma import dqn_model, prioritized_buffer
 
 #https://github.com/Kaixhin/Rainbow/
 
+
 class RainbowAgent:
 
   def __init__(
@@ -19,7 +20,7 @@ class RainbowAgent:
     state_dim,
     action_dim,
     device,
-    #lr=1e-4,
+    #lr=1e-3,
     batch_size=128,
     buffer_size=int(1e6),
     discount=0.99,
@@ -29,7 +30,6 @@ class RainbowAgent:
     adam_eps=1.5e-4,  # Adam epsilon
     atoms=51,  # Discretised size of value distribution
     history_length=3,  # Number of consecutive states processed
-    hidden_size=512,  # Network hidden size
     noisy_std=0.1,  # Initial standard deviation of noisy linear layers
     multi_step=3,  # Number of steps for multi-step return
     priority_weight=0.4,  # Initial prioritised experience replay importance sampling weight
@@ -44,7 +44,7 @@ class RainbowAgent:
 
     # TODO: set calc_priority_weight_increase() befor training starts
 
-    self.save_path = Path("./results")
+    self.save_path = Path("./results/rainbow/")
     self.train_process_data_fname = "rainbow_training.npy"
     self.train_process_plot_fname = "rainbow_training.png"
 
@@ -78,7 +78,6 @@ class RainbowAgent:
     self.online_net = dqn_model.DQN(atoms,
                                     action_space=self.action_dim,
                                     history_length=history_length,
-                                    hidden_size=hidden_size,
                                     noisy_std=noisy_std
                                     ).to(device=self.device)
     self.online_net.train()
@@ -87,7 +86,6 @@ class RainbowAgent:
     self.target_net = dqn_model.DQN(atoms,
                                     action_space=self.action_dim,
                                     history_length=history_length,
-                                    hidden_size=hidden_size,
                                     noisy_std=noisy_std
                                     ).to(device=self.device)
     self.update_target_net()
@@ -102,6 +100,7 @@ class RainbowAgent:
 
     # Replay Buffer
     self.mem = prioritized_buffer.ReplayMemory(device=device,
+                                               state_shape=state_dim,
                                                history_length=history_length,
                                                discount=discount,
                                                multi_step=multi_step,
@@ -164,11 +163,11 @@ class RainbowAgent:
         self._optimize()
       if self.global_step % self.target_update == 0:
         self.update_target_net()
+
+    if self.global_step % 1000 == 0:
       avrg_reward = sum(self.total_reward) / len(self.total_reward)
       self.reward_history.append(avrg_reward)
       self.total_reward = []
-
-    if self.global_step % 100 == 0:
       self._plot_results()
 
     if self.global_step % self.save_interval == 0:

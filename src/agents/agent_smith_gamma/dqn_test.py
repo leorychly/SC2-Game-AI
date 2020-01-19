@@ -3,6 +3,8 @@ import numpy as np
 from absl import logging
 import torch
 torch.backends.cudnn.enabled = True
+logging.set_verbosity('info')
+logging.set_stderrthreshold('info')
 
 from src.agents.agent_smith_gamma.rainbow_dqn import RainbowAgent
 
@@ -41,23 +43,31 @@ class Action:
 def training(env,
              agent,
              max_steps=int(50e6),
+             ep_steps=1000,
              replay_frequency=4,  # Frequency of sampling from memory
              reward_clip=1,
+             eval_freq_ep=10,
              learn_start=int(20e3)):
   action_op = Action(n_action=env.action_space.shape[0])
 
   agent.train()
   done = True
   reward_total = 0
-  reward_window = 0
-
+  reward_ep = -100
   agent.calc_priority_weight_increase(max_steps)
-  prev_reward = 0
-  action_cmd = np.zeros(3)
+
+  n_ep = 0
 
   for step in range(1, max_steps + 1):
-    if done:
+    if done or step % ep_steps == 0:
+      logging.info(f"Ep {n_ep}\t Step {step}\t Ep Reward {reward_ep:.3f}")
+      agent.to_tensorboard(var=reward_ep,
+                           name=f"Episode Reward")
+      action_cmd = np.zeros(3)
+      reward_ep = 0
+      n_ep += 1
       state = env.reset()
+
     if step % replay_frequency == 0:
       agent.reset_noise()  # Draw a new set of noisy weights
 
@@ -67,6 +77,9 @@ def training(env,
     action_idx = agent(state.to("cuda"))
     action_cmd += action_op(action_idx)
     action_cmd = action_cmd.clip(min=[-1, 0, 0], max=[1, 1, 1])
+
+    if n_ep % eval_freq_ep == 0:
+      env.render()
     next_state, reward, done, _ = env.step(action_cmd)
 
     if reward_clip > 0:
@@ -79,19 +92,8 @@ def training(env,
                done=done)
 
     state = next_state
-    reward_window += reward
+    reward_ep += reward
     reward_total += reward
-
-    logging_interval = 1000
-    delta_reward = reward_total - prev_reward
-    prev_reward = reward_total
-    agent.to_tensorboard(var=delta_reward,
-                         name=f"Reward gain in last {logging_interval}"
-                              f"episode")
-    agent.to_tensorboard(var=reward_total, name="Total Reward")
-    if step % logging_interval == 0:
-      reward_window = 0
-      logging.info(f">Step {step}\tDelta Reward{delta_reward:.3f}")
 
 
 if __name__ == '__main__':

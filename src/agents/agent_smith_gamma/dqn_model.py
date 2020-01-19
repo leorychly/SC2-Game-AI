@@ -41,9 +41,10 @@ class NoisyLinear(nn.Module):
 
   def forward(self, input):
     if self.training:
-      return F.linear(input,
-                      self.weight_mu + self.weight_sigma * self.weight_epsilon,
-                      self.bias_mu + self.bias_sigma * self.bias_epsilon)
+      return F.linear(
+        input,
+        self.weight_mu + self.weight_sigma * self.weight_epsilon,
+        self.bias_mu + self.bias_sigma * self.bias_epsilon)
     else:
       return F.linear(input, self.weight_mu, self.bias_mu)
 
@@ -53,29 +54,28 @@ class DQN(nn.Module):
                atoms,
                action_space,
                history_length,
-               hidden_size,
                noisy_std,
-               architecture="canonical"):
+               hidden_size=512):  # Network hidden size
     super(DQN, self).__init__()
     self.atoms = atoms
     self.action_space = action_space
 
-    if architecture == 'canonical':
-      self.convs = nn.Sequential(
-        nn.Conv2d(history_length, 32, kernel_size=8, stride=4, padding=0),
-        nn.ReLU(),
-        nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
-        nn.ReLU(),
-        nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
-        nn.ReLU())
-      self.conv_output_size = 4096  # 3136
-    elif architecture == 'data-efficient':
-      self.convs = nn.Sequential(
-        nn.Conv2d(history_length, 32, kernel_size=5, stride=5, padding=0),
-        nn.ReLU(),
-        nn.Conv2d(32, 64, kernel_size=5, stride=5, padding=0),
-        nn.ReLU())
-      self.conv_output_size = 576
+    self.convs = nn.Sequential(
+      nn.Conv2d(history_length, 32, kernel_size=6),
+      nn.ReLU(),
+      nn.MaxPool2d(kernel_size=2),
+      nn.Conv2d(32, 32, kernel_size=6),
+      nn.ReLU(),
+      nn.MaxPool2d(kernel_size=2),
+      nn.Conv2d(32, 64, kernel_size=4),
+      nn.ReLU(),
+      nn.MaxPool2d(kernel_size=2),
+      nn.Conv2d(64, 64, kernel_size=4),
+      nn.ReLU(),
+      nn.Conv2d(64, 128, kernel_size=3),
+      nn.ReLU())
+    self.conv_output_size = 1152
+
     self.fc_h_v = NoisyLinear(
       self.conv_output_size, hidden_size, std_init=noisy_std)
     self.fc_h_a = NoisyLinear(
