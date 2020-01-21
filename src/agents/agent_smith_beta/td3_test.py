@@ -6,6 +6,7 @@ from collections import deque
 from PIL import Image
 import time
 import copy
+from pathlib2 import Path
 
 from src.agents.agent_smith_beta.td3 import TD3Agent
 
@@ -14,6 +15,7 @@ class TestTD3:
 
   def __init__(self):
     self.render = False
+    self.model_path = Path("./results/td3_test_model/")
     self.goal_score = 100
     self.batch_size = 128
     self.n_images_in_stack = 3
@@ -28,10 +30,20 @@ class TestTD3:
     self.policy = TD3Agent(state_dim=state_dim,
                            action_dim=action_dim,
                            device=self.device)
+
+    try:
+      self.policy.load(self.model_path)
+      print(f"The model was loaded from "
+            f"'{self.model_path.absolute().as_posix()}'")
+    except Exception as e:
+      print(f"No model loaded from "
+            f"'{self.model_path.absolute().as_posix()}'")
+
     self.test_is_done = False
     while not self.test_is_done:
       self.run_test(env)
     env.close()
+
 
   def _latest_stacked_state(self):
     state = np.vstack(self.short_term_memory)
@@ -47,7 +59,7 @@ class TestTD3:
     state = np.rollaxis(state, 2, 0)
     return state
 
-  def run_test(self, env, n_ep=1000, n_steps=500, print_interval=10):
+  def run_test(self, env, n_ep=100, n_steps=500, print_interval=10):
     for ep in range(n_ep):
       scores_deque = deque(maxlen=100)
       scores = []
@@ -100,6 +112,7 @@ class TestTD3:
           self.test_is_done = True
 
         if done:
+          self.policy.save(self.model_path)
           print(f"\tEp {ep}, Total Reward {episode_reward}")
           break
 
@@ -118,4 +131,6 @@ class TestTD3:
 
 
 if __name__ == '__main__':
-  test = TestTD3()
+  for i in range(100):
+    print(f"\n\n==========Starting Iteration {i}==========\n\n")
+    test = TestTD3()
