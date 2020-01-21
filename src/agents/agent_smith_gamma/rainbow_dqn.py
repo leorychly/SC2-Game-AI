@@ -25,7 +25,7 @@ class RainbowAgent:
     buffer_size=int(1e6),
     discount=0.99,
     training_interval=4,
-    n_steps_before_training=int(20e3), #e3  # Number of steps before starting training
+    n_steps_before_training=int(20e3),    # 20e3 Number of steps before starting training
     target_update=int(8e3),  # Number of steps after which to update target network
     adam_eps=1.5e-4,  # Adam epsilon
     atoms=51,  # Discretised size of value distribution
@@ -235,7 +235,7 @@ class RainbowAgent:
                             (pns_a * (b - l.float())).view(-1))  # m_u = m_u + p(s_t+n, a*)(b - l)
 
     loss = -torch.sum(m * log_ps_a, 1)  # Cross-entropy loss (minimises DKL(m||p(s_t, a_t)))
-    #self.to_tensorboard(var=np.mean(loss), name="Avrg Batch Q-Net Loss")
+    self.to_tensorboard(var=torch.mean(loss), name="Avrg Batch Q-Net Loss")
     self.online_net.zero_grad()
     (weights * loss).mean().backward()  # Backpropagate importance-weighted minibatch loss
     self.optimiser.step()
