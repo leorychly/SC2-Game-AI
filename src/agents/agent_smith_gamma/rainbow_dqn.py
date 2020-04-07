@@ -20,8 +20,8 @@ class RainbowAgent:
     state_dim,
     action_dim,
     device,
-    #lr=1e-3,
-    batch_size=128,
+    lr=1e-4,
+    batch_size=32,
     buffer_size=int(1e6),
     discount=0.99,
     training_interval=4,
@@ -95,7 +95,7 @@ class RainbowAgent:
 
     # Optimizer
     self.optimiser = optim.Adam(self.online_net.parameters(),
-                                #lr=lr,
+                                lr=lr,
                                 eps=adam_eps)
 
     # Replay Buffer

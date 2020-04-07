@@ -13,25 +13,40 @@ from src.agents.agent_smith_gamma.rainbow_dqn import RainbowAgent
 class Action:
   def __init__(self, n_action):
     self.action_cmd = np.zeros(n_action)
+    #self.modification_lst = [
+    #  [0, 0, 0],
+    #  [0.1, 0, 0],
+    #  [0.2, 0, 0],
+    #  [0.4, 0, 0],
+    #  [-0.2, 0, 0],
+    #  [-0.4, 0, 0],
+    #  [0, 0.1, 0],
+    #  [0, 0.2, 0],
+    #  [0, 0.4, 0],
+    #  [0, -0.1, 0],
+    #  [0, -0.2, 0],
+    #  [0, -0.4, 0],
+    #  [0, 0, 0.1],
+    #  [0, 0, 0.2],
+    #  [0, 0, 0.4],
+    #  [0, 0, -0.1],
+    #  [0, 0, -0.2],
+    #  [0, 0, -0.4]
+    #]
     self.modification_lst = [
-      [0, 0, 0],
-      [0.1, 0, 0],
-      [0.2, 0, 0],
-      [0.4, 0, 0],
-      [-0.2, 0, 0],
-      [-0.4, 0, 0],
-      [0, 0.1, 0],
-      [0, 0.2, 0],
-      [0, 0.4, 0],
-      [0, -0.1, 0],
-      [0, -0.2, 0],
-      [0, -0.4, 0],
-      [0, 0, 0.1],
-      [0, 0, 0.2],
-      [0, 0, 0.4],
-      [0, 0, -0.1],
-      [0, 0, -0.2],
-      [0, 0, -0.4]
+      [0., 0., 0.],
+      [0.1, 0., 0.],
+      [0.5, 0., 0.],
+      [1., 0., 0.],
+      [-0.1, 0., 0.],
+      [-0.5, 0., 0.],
+      [-1., 0., 0.],
+      [0., 0.1, 0.],
+      [0., 0.5, 0.],
+      [0., 1., 0.],
+      [0., 0., 0.1],
+      [0., 0., 0.5],
+      [0., 0., 1.]
     ]
 
   def __len__(self):
@@ -67,7 +82,7 @@ def training(env,
       logging.info(f"Ep {n_ep}\t Step {step}\t Ep Reward {reward_ep:.3f}")
       agent.to_tensorboard(var=reward_ep,
                            name=f"Episode Reward")
-      action_cmd = np.zeros(3)
+      #action_cmd = np.zeros(3)
       reward_ep = 0
       n_ep += 1
       state = env.reset()
@@ -80,15 +95,18 @@ def training(env,
     state_stack.append(state)
 
     action_idx = agent(state.to("cuda"))
-    action_cmd += action_op(action_idx)
-    action_cmd = action_cmd.clip(min=[-1, 0, 0], max=[1, 1, 1])
+    #action_cmd += action_op(action_idx)
+    #action_cmd = action_cmd.clip(min=[-1, 0, 0], max=[1, 1, 1])
+    action_cmd = action_op(action_idx)
 
     #if n_ep % eval_freq_ep == 0:
     #  env.render()
     next_state, reward, done, _ = env.step(action_cmd)
 
     if reward_clip > 0:
-      reward = max(min(reward, reward_clip), -reward_clip)
+      reward *= 0.1
+      reward = np.clip(reward, a_min=-reward_clip, a_max=reward_clip)
+      #reward = max(min(reward, reward_clip), -reward_clip)
 
     if len(state_stack) >= stack_len:
       agent.step(state=np.vstack(state_stack),  # torch.from_numpy(np.flip(state, axis=0).copy())
